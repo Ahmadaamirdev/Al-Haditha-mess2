@@ -12,6 +12,7 @@ import Settings from './pages/Settings';
 import EmployeeEntryPanel from './pages/EmployeeEntryPanel';
 import Employees from './pages/Employees';
 import Records from './pages/Records';
+import EmployeeMobilePass from './pages/EmployeeMobilePass';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -33,6 +34,10 @@ export default function App() {
         <Routes>
           {/* Standalone Employee Kiosk / Entry Terminal Interface */}
           <Route path="/entry" element={<EmployeeEntryPanel />} />
+
+          {/* Secure Employee Mobile Pass Portal */}
+          <Route path="/pass" element={<EmployeeMobilePass />} />
+          <Route path="/pass/:id" element={<EmployeeMobilePass />} />
 
           {/* Admin Dashboard & Management System */}
           <Route path="/" element={<MainLayout />}>

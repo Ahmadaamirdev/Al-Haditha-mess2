@@ -7,7 +7,7 @@ export const CONTRACT_EMPLOYEE_IDS = new Set([
   'AHP-1044', 'AHP-1051', 'AHP-1059', 'AHP-1066', 'AHP-1073'  // 5 Senior
 ]);
 
-export const alHadithaEmployees = [
+const baseEmployees = [
   // ==========================================
   // JUNIOR CATEGORY (40 Employees: AHP-1001 to AHP-1040)
   // ==========================================
@@ -1067,3 +1067,130 @@ export function matchEmployeeByIdAndName(idInput, nameInput) {
     message: `APPROVED: Welcome, ${employeeById.name}!`
   };
 }
+
+export const alHadithaEmployees = baseEmployees.map((emp) => ({
+  ...emp,
+  qrToken: emp.qrToken || `AHP-QR-${emp.id.replace('AHP-', '')}`,
+}));
+
+/**
+ * Generate standard QR Code payload JSON string for an employee
+ */
+export const DYNAMIC_QR_WINDOW_SEC = 30; // QR rotates every 30 seconds
+export const DYNAMIC_QR_MAX_AGE_SEC = 60; // Max allowed age (prevents screenshots from being reused)
+
+/**
+ * Generate standard static employee QR payload
+ */
+export function generateEmployeeQrPayload(employee) {
+  if (!employee) return '';
+  return JSON.stringify({
+    type: 'AHP_MESS_PASS',
+    id: employee.id,
+    name: employee.name,
+    phone: employee.phone || '',
+    category: employee.category || 'Junior',
+    token: employee.qrToken || `AHP-QR-${employee.id.replace('AHP-', '')}`
+  });
+}
+
+/**
+ * Generate dynamic time-based rolling QR payload with anti-screenshot timestamp
+ */
+export function generateDynamicQrPassPayload(employee) {
+  if (!employee) return '';
+  const nowSec = Math.floor(Date.now() / 1000);
+  const timeSlot = Math.floor(nowSec / DYNAMIC_QR_WINDOW_SEC);
+  return JSON.stringify({
+    type: 'AHP_DYNAMIC_PASS',
+    id: employee.id,
+    name: employee.name,
+    category: employee.category || 'Junior',
+    token: employee.qrToken || `AHP-QR-${employee.id.replace('AHP-', '')}`,
+    ts: nowSec,
+    slot: timeSlot,
+    sig: `${employee.id}-${timeSlot}`
+  });
+}
+
+/**
+ * Parse scanned QR string and verify against employee roster
+ */
+export function parseAndMatchQrCode(qrString, employeeRoster = alHadithaEmployees) {
+  if (!qrString || typeof qrString !== 'string') {
+    return {
+      matched: false,
+      reason: 'INVALID_QR',
+      message: 'Empty or invalid QR code format.'
+    };
+  }
+
+  let idToMatch = '';
+  let phoneToMatch = '';
+  let isDynamic = false;
+  let dynamicAgeSec = 0;
+  const trimmed = qrString.trim();
+
+  // Try parsing JSON format
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (parsed.id) idToMatch = String(parsed.id).trim().toUpperCase();
+    if (parsed.phone) phoneToMatch = String(parsed.phone).trim();
+
+    // Anti-screenshot verification for dynamic mobile passes
+    if (parsed.type === 'AHP_DYNAMIC_PASS') {
+      isDynamic = true;
+      const nowSec = Math.floor(Date.now() / 1000);
+      const codeTime = Number(parsed.ts) || 0;
+      dynamicAgeSec = Math.abs(nowSec - codeTime);
+
+      if (dynamicAgeSec > DYNAMIC_QR_MAX_AGE_SEC) {
+        return {
+          matched: false,
+          reason: 'SCREENSHOT_EXPIRED',
+          message: `EXPIRED PASS (${Math.round(dynamicAgeSec)}s old). Static screenshots are prohibited — please show your live mobile pass.`
+        };
+      }
+    }
+  } catch {
+    // Try parsing delimiter format: "AHP:AHP-1001:+968..."
+    if (trimmed.startsWith('AHP:')) {
+      const parts = trimmed.split(':');
+      if (parts[1]) idToMatch = parts[1].trim().toUpperCase();
+      if (parts[2]) phoneToMatch = parts[2].trim();
+    } else {
+      // Direct ID fallback (e.g. scanned "AHP-1001")
+      idToMatch = trimmed.toUpperCase();
+    }
+  }
+
+  if (!idToMatch) {
+    return {
+      matched: false,
+      reason: 'ID_MISSING_IN_QR',
+      message: 'Scanned QR code does not contain a valid Employee ID.'
+    };
+  }
+
+  const roster = employeeRoster && employeeRoster.length > 0 ? employeeRoster : alHadithaEmployees;
+  const employee = roster.find((e) => e.id.toUpperCase() === idToMatch);
+
+  if (!employee) {
+    return {
+      matched: false,
+      reason: 'ID_NOT_FOUND',
+      message: `Employee ID "${idToMatch}" from QR code not found in roster.`
+    };
+  }
+
+  return {
+    matched: true,
+    approved: true,
+    employee,
+    isDynamicPass: isDynamic,
+    message: isDynamic
+      ? `APPROVED (Live Mobile Pass Verified): Welcome, ${employee.name}!`
+      : `APPROVED: Welcome, ${employee.name}!`
+  };
+}
+

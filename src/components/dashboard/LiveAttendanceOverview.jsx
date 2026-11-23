@@ -11,7 +11,9 @@ import {
   Sun, 
   Moon, 
   RotateCcw,
-  Search
+  Search,
+  QrCode,
+  KeyRound
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { CONTRACT_EMPLOYEE_IDS } from '../../data/employeesData';
@@ -276,6 +278,7 @@ export default function LiveAttendanceOverview() {
                 <th className="px-4 py-2.5">Staff Name</th>
                 <th className="px-4 py-2.5">Category</th>
                 <th className="px-4 py-2.5">Meal Service</th>
+                <th className="px-4 py-2.5 text-center">Method</th>
                 <th className="px-4 py-2.5 text-center">Status</th>
                 <th className="px-4 py-2.5 text-right">Action</th>
               </tr>
@@ -328,6 +331,19 @@ export default function LiveAttendanceOverview() {
                        <Utensils className="w-3 h-3 text-slate-400" />}
                       <span>{entry.mealType}</span>
                     </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-center">
+                    {entry.entryMethod === 'QR_SCAN' ? (
+                      <span className="inline-flex items-center space-x-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
+                        <QrCode className="w-2.5 h-2.5 text-indigo-600" />
+                        <span>QR</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center space-x-1 text-[10px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+                        <KeyRound className="w-2.5 h-2.5 text-slate-500" />
+                        <span>Manual</span>
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-2.5 text-center">
                     <span className="inline-flex items-center space-x-1 text-[10px] font-semibold text-brand-green bg-brand-green-light px-2 py-0.5 rounded-full">

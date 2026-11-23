@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { initialMockData } from '../data/mockData';
-import { alHadithaEmployees, matchEmployeeByIdAndName } from '../data/employeesData';
+import { alHadithaEmployees, matchEmployeeByIdAndName, parseAndMatchQrCode, generateEmployeeQrPayload } from '../data/employeesData';
 import { getEmployeeRealtimeAllocations, calculateMonthCalendar, MEAL_WINDOWS, isEntryInMonthOrDate } from '../utils/allocationEngine';
 import { computeCategoryFinance } from '../utils/financeEngine';
 import { harmonizeStateMetrics, getCurrentMonthLabel, defaultNovemberEvents, defaultAlHadithaEvents, defaultAlHadithaEvent } from '../utils/harmonizeEngine';
+import { playSuccessChime, playWarningTone, playErrorTone } from '../utils/audioTones';
 
 const AppContext = createContext(null);
 const STORAGE_KEY = 'alhaditha_mess_clean_v5';
@@ -84,7 +85,7 @@ export function AppProvider({ children }) {
             if (localSaved) {
               try {
                 const localData = JSON.parse(localSaved);
-                
+
                 // Preserve local mealAllocation if user changed it locally
                 if (localData.mealAllocation) {
                   mergedData.mealAllocation = {
@@ -148,8 +149,8 @@ export function AppProvider({ children }) {
     const interval = setInterval(fetchFromMongo, 6000);
     window.addEventListener('focus', fetchFromMongo);
 
-    return () => { 
-      isMounted = false; 
+    return () => {
+      isMounted = false;
       clearInterval(interval);
       window.removeEventListener('focus', fetchFromMongo);
     };
@@ -284,11 +285,11 @@ export function AppProvider({ children }) {
       events: (prev.events || []).map((evt) =>
         evt.id === eventId
           ? {
-              ...evt,
-              ...updatedFields,
-              overallBudget: Number(updatedFields.expectedCount ?? evt.expectedCount) *
-                Number(updatedFields.perPersonBudget ?? evt.perPersonBudget),
-            }
+            ...evt,
+            ...updatedFields,
+            overallBudget: Number(updatedFields.expectedCount ?? evt.expectedCount) *
+              Number(updatedFields.perPersonBudget ?? evt.perPersonBudget),
+          }
           : evt
       ),
     }));
@@ -307,14 +308,14 @@ export function AppProvider({ children }) {
         method: 'POST',
         headers: { 'Content-Type': 'Professional/json', 'Content-Type': 'application/json' },
         body: JSON.stringify(updated),
-      }).catch(() => {});
+      }).catch(() => { });
       return updated;
     });
 
     // Also call DELETE endpoint directly
     fetch(`/api/events/${eventId}`, {
       method: 'DELETE',
-    }).catch(() => {});
+    }).catch(() => { });
 
     addToast('Event removed.', 'info');
   };
@@ -379,7 +380,7 @@ export function AppProvider({ children }) {
       try {
         sessionStorage.setItem('alhaditha_session_month', month);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      } catch {}
+      } catch { }
 
       // Immediately sync to MongoDB Atlas so Vercel and all clients stay synced
       fetch('/api/data', {
@@ -421,17 +422,31 @@ export function AppProvider({ children }) {
   };
 
   // Real-time Meal Entry Recording (Updates Entry Panel, Dashboard, Quotas, Finance)
-  const recordMealEntry = ({ 
-    employeeId, 
-    employeeName, 
-    mealType = 'Lunch', 
-    facility = 'Main Camp Mess Hall', 
+  const recordMealEntry = ({
+    employeeId,
+    employeeName,
+    qrCodeString = null,
+    entryMethod = 'MANUAL',
+    mealType = 'Lunch',
+    facility = 'Main Camp Mess Hall',
     allowDuplicate = false,
     customDate = null,
     customTimestamp = null,
     effectiveDate = null
   }) => {
-    const matchResult = matchEmployeeByIdAndName(employeeId, employeeName);
+    let matchResult = null;
+    if (qrCodeString) {
+      matchResult = parseAndMatchQrCode(qrCodeString, data.employees);
+    } else if (employeeId && !employeeName) {
+      const cleanId = String(employeeId).trim().toUpperCase();
+      const found = (data.employees || alHadithaEmployees).find((e) => e.id.toUpperCase() === cleanId);
+      matchResult = found
+        ? { matched: true, approved: true, employee: found }
+        : { matched: false, reason: 'ID_NOT_FOUND', message: `Employee ID "${cleanId}" not found in company records.` };
+    } else {
+      matchResult = matchEmployeeByIdAndName(employeeId, employeeName);
+    }
+
     if (!matchResult.matched) {
       return matchResult;
     }
@@ -456,23 +471,45 @@ export function AppProvider({ children }) {
         matched: true,
         isDuplicate: true,
         employee: emp,
+        prevEntry: todayEmpEntries[todayEmpEntries.length - 1],
         allocations: currentAllocations,
         message: `Employee ${emp.name} has already consumed all 3 daily allocations today (Breakfast, Lunch, Dinner).`,
       };
     }
 
-    // Determine target meal window: if the requested mealType is already logged today, assign the next open slot
+    // Check if employee already logged this exact meal slot today
+    const existingSlotEntry = todayEmpEntries.find(
+      (m) => (m.mealType || '').toLowerCase() === (mealType || '').toLowerCase()
+    );
+    if (existingSlotEntry && !allowDuplicate) {
+      const currentAllocations = getEmployeeRealtimeAllocations({
+        employeeId: emp.id,
+        mealEntries: data.mealEntries || [],
+        currentDate: now
+      });
+      return {
+        matched: true,
+        isDuplicate: true,
+        employee: emp,
+        prevEntry: existingSlotEntry,
+        allocations: currentAllocations,
+        message: `${emp.name} has already logged a ${mealType} meal today at ${existingSlotEntry.timestamp || 'earlier'}.`,
+      };
+    }
+
     let finalMealType = mealType;
-    const alreadyHasRequestedSlot = todayEmpEntries.some(m => m.mealType?.toLowerCase() === mealType?.toLowerCase());
-    if (alreadyHasRequestedSlot) {
+    if (existingSlotEntry && allowDuplicate) {
       const availableSlots = ['Breakfast', 'Lunch', 'Dinner'];
-      const openSlot = availableSlots.find(slot => !todayEmpEntries.some(m => m.mealType?.toLowerCase() === slot.toLowerCase()));
+      const openSlot = availableSlots.find(
+        (slot) => !todayEmpEntries.some((m) => (m.mealType || '').toLowerCase() === slot.toLowerCase())
+      );
       if (openSlot) {
         finalMealType = openSlot;
       }
     }
 
     const timeStr = customTimestamp || now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const actualEntryMethod = entryMethod || (qrCodeString ? 'QR_SCAN' : 'MANUAL');
     const newEntry = {
       id: `MEAL-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`,
       employeeId: emp.id,
@@ -485,22 +522,24 @@ export function AppProvider({ children }) {
       timestamp: timeStr,
       date: todayStr,
       status: 'Verified',
+      entryMethod: actualEntryMethod,
+      qrToken: emp.qrToken || `AHP-QR-${emp.id.replace('AHP-', '')}`,
     };
 
     const catKey = emp.category.toLowerCase(); // 'junior', 'senior', 'vip'
-    const mealRate = data.financeOverview?.categoryRates?.[catKey]?.rate || 10;
 
-    let computedAllocations = null;
+    const currentEntries = data.mealEntries || [];
+    const updatedEntriesList = [newEntry, ...currentEntries];
+
+    const computedAllocations = getEmployeeRealtimeAllocations({
+      employeeId: emp.id,
+      mealEntries: updatedEntriesList,
+      currentDate: now
+    });
 
     setData((prev) => {
-      const currentEntries = prev.mealEntries || [];
-      const updatedMealEntries = [newEntry, ...currentEntries];
-      
-      computedAllocations = getEmployeeRealtimeAllocations({
-        employeeId: emp.id,
-        mealEntries: updatedMealEntries,
-        currentDate: now
-      });
+      const prevEntries = prev.mealEntries || [];
+      const updatedMealEntries = [newEntry, ...prevEntries];
 
       // 1. Update Employee Overview eating counts
       const prevCat = prev.employeeOverview?.[catKey] || { total: 40, eating: 0, percentage: 0 };
@@ -571,7 +610,7 @@ export function AppProvider({ children }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newEntry),
-    }).catch(() => {});
+    }).catch(() => { });
 
     addToast(`Approved: ${emp.name} (${emp.category}) checked in for ${finalMealType}! 1 allocation deducted.`, 'success');
 
@@ -597,7 +636,7 @@ export function AppProvider({ children }) {
     // Immediate delete in MongoDB Atlas
     fetch(`/api/meal-entries/${entryId}`, {
       method: 'DELETE',
-    }).catch(() => {});
+    }).catch(() => { });
 
     addToast('Meal entry removed.', 'info');
   };
@@ -613,7 +652,7 @@ export function AppProvider({ children }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated),
-      }).catch(() => {});
+      }).catch(() => { });
       return updated;
     });
     addToast('All meal entries reset to 0. Ready for testing!', 'info');
@@ -646,6 +685,7 @@ export function AppProvider({ children }) {
       phone: `+968 9${Math.floor(1000000 + Math.random() * 9000000)}`,
       status: 'Active',
       joinDate: new Date().toISOString().split('T')[0],
+      qrToken: `AHP-QR-${cleanId.replace('AHP-', '')}`,
     };
 
     const catKey = category.toLowerCase();

@@ -1,12 +1,19 @@
 import { MongoClient } from 'mongodb';
 import dns from 'node:dns';
+import dotenv from 'dotenv';
 import { harmonizeStateMetrics, defaultAlHadithaEvent } from '../src/utils/harmonizeEngine.js';
 
 try {
   dns.setServers(['8.8.8.8', '1.1.1.1']);
 } catch (_) {}
 
-const uri = process.env.MONGODB_URI || "mongodb+srv://<username>:<password>@<cluster>.mongodb.net/al_haditha_catering?retryWrites=true&w=majority";
+dotenv.config();
+
+const uri = process.env.MONGODB_URI;
+if (!uri) {
+  console.error("Error: MONGODB_URI is not set in environment or .env file.");
+  process.exit(1);
+}
 
 const masterMealEntries = [
   {
@@ -117,11 +124,10 @@ async function seedMasterData() {
     );
 
     console.log("✓ Synchronized appState with harmonized metrics:");
-    console.log("  Junior Eating:", harmonized.employeeOverview.junior.eating, `(${harmonized.employeeOverview.junior.percentage}%)`);
-    console.log("  Senior Eating:", harmonized.employeeOverview.senior.eating, `(${harmonized.employeeOverview.senior.percentage}%)`);
-    console.log("  VIP Eating:", harmonized.employeeOverview.vip.eating, `(${harmonized.employeeOverview.vip.percentage}%)`);
-    console.log("  Wastage Consumed:", harmonized.wastageOverview.consumedMeals);
-    console.log("  Events Count:", harmonized.events.length);
+    console.log("  Junior Eating:", harmonized.employeeOverview?.junior?.eating, `(${harmonized.employeeOverview?.junior?.percentage}%)`);
+    console.log("  Senior Eating:", harmonized.employeeOverview?.senior?.eating, `(${harmonized.employeeOverview?.senior?.percentage}%)`);
+    console.log("  Wastage Consumed:", harmonized.wastageOverview?.consumedMeals);
+    console.log("  Events Count:", harmonized.events?.length);
 
   } catch (err) {
     console.error("Error:", err);

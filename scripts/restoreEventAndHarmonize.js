@@ -1,11 +1,18 @@
 import { MongoClient } from 'mongodb';
 import dns from 'node:dns';
+import dotenv from 'dotenv';
 
 try {
   dns.setServers(['8.8.8.8', '1.1.1.1']);
 } catch (_) {}
 
-const uri = process.env.MONGODB_URI || "mongodb+srv://<username>:<password>@<cluster>.mongodb.net/al_haditha_catering?retryWrites=true&w=majority";
+dotenv.config();
+
+const uri = process.env.MONGODB_URI;
+if (!uri) {
+  console.error("Error: MONGODB_URI is not set in environment or .env file.");
+  process.exit(1);
+}
 
 async function restoreAndHarmonize() {
   console.log("Connecting to MongoDB Atlas...");

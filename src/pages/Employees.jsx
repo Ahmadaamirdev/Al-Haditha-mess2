@@ -19,14 +19,15 @@ import {
   Utensils,
   Calendar,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  QrCode
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Modal from '../components/common/Modal';
+import EmployeeBadgeModal from '../components/common/EmployeeBadgeModal';
 import { getEmployeesAllocationMap, calculateMonthCalendar } from '../utils/allocationEngine';
 import { getCurrentMonthLabel, getCurrentMonthObj } from '../utils/harmonizeEngine';
 import { CONTRACT_EMPLOYEE_IDS } from '../data/employeesData';
-
 export default function Employees() {
   const { data, addEmployee, deleteEmployee, addToast } = useApp();
   const { employees = [] } = data;
@@ -107,6 +108,9 @@ export default function Employees() {
 
   // Selected Employee Ledger Modal State
   const [selectedEmployeeLedger, setSelectedEmployeeLedger] = useState(null);
+
+  // Badge modal state
+  const [badgeEmployee, setBadgeEmployee] = useState(null);
 
   // Real-time allocation map synchronized with selected month and meal entries
   const allocationsMap = useMemo(() => {
@@ -553,9 +557,16 @@ export default function Employees() {
                         </div>
                       </td>
 
-                      {/* Actions: Delete only (eye button removed) */}
+                      {/* Actions: QR Badge + Delete */}
                       <td className="px-4 py-3.5 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => setBadgeEmployee(emp)}
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors cursor-pointer"
+                            title={`View QR Badge for ${emp.name}`}
+                          >
+                            <QrCode className="w-4 h-4" />
+                          </button>
                           <button
                             onClick={() => setEmployeeToDelete(emp)}
                             className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
@@ -808,6 +819,14 @@ export default function Employees() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* MODAL: Employee Badge & QR Code */}
+      {badgeEmployee && (
+        <EmployeeBadgeModal
+          employee={badgeEmployee}
+          onClose={() => setBadgeEmployee(null)}
+        />
       )}
 
     </div>

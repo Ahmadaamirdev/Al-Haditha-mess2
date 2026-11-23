@@ -13,7 +13,9 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  FileSpreadsheet
+  FileSpreadsheet,
+  QrCode,
+  KeyRound
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -132,6 +134,7 @@ export default function Records() {
       'Staff Name',
       'Category',
       'Meal Type',
+      'Method',
       'Status'
     ];
 
@@ -143,6 +146,7 @@ export default function Records() {
       `"${(e.employeeName || '').replace(/"/g, '""')}"`,
       `"${e.category || ''}"`,
       `"${e.mealType || ''}"`,
+      `"${e.entryMethod || 'MANUAL'}"`,
       `"${e.status || 'Verified'}"`
     ]);
 
@@ -406,6 +410,7 @@ export default function Records() {
                   <th className="px-4 py-3">Staff Name</th>
                   <th className="px-4 py-3">Category</th>
                   <th className="px-4 py-3">Meal Service</th>
+                  <th className="px-4 py-3 text-center">Method</th>
                   <th className="px-4 py-3 text-center">Status</th>
                   <th className="px-4 py-3 text-right">Action</th>
                 </tr>
@@ -458,6 +463,21 @@ export default function Records() {
                          <Utensils className="w-3.5 h-3.5 text-slate-400" />}
                         <span>{entry.mealType}</span>
                       </span>
+                    </td>
+
+                    {/* Entry Method */}
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
+                      {entry.entryMethod === 'QR_SCAN' ? (
+                        <span className="inline-flex items-center space-x-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded-full">
+                          <QrCode className="w-3 h-3 text-indigo-600" />
+                          <span>QR Code</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center space-x-1 text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+                          <KeyRound className="w-3 h-3 text-slate-500" />
+                          <span>Manual</span>
+                        </span>
+                      )}
                     </td>
 
                     {/* Verification Status */}
