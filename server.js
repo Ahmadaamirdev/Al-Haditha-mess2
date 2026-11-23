@@ -24,7 +24,18 @@ let client = null;
 let db = null;
 
 async function connectToMongo() {
-  if (db) return db;
+  // If we have a live db handle, verify the connection is still alive
+  if (db) {
+    try {
+      await db.command({ ping: 1 });
+      return db;
+    } catch (_) {
+      // Connection dropped — reset and reconnect below
+      console.warn('MongoDB ping failed — reconnecting...');
+      db = null;
+      client = null;
+    }
+  }
   if (!MONGODB_URI) {
     throw new Error('MONGODB_URI environment variable is not defined.');
   }

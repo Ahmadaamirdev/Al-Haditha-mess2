@@ -69,6 +69,10 @@ export function AppProvider({ children }) {
     async function fetchFromMongo() {
       try {
         const res = await fetch('/api/data');
+        if (!res.ok) {
+          if (isMounted) setIsMongoConnected(false);
+          return;
+        }
         if (res.ok) {
           const mongoData = await res.json();
           if (mongoData && mongoData.employees && isMounted) {
@@ -139,6 +143,7 @@ export function AppProvider({ children }) {
         }
       } catch (err) {
         console.warn('MongoDB connection offline, using cached data:', err.message);
+        if (isMounted) setIsMongoConnected(false);
         isInitialLoaded.current = true;
       }
     }
