@@ -71,6 +71,7 @@ export function AppProvider({ children }) {
         const res = await fetch('/api/data');
         if (!res.ok) {
           if (isMounted) setIsMongoConnected(false);
+          isInitialLoaded.current = true;
           return;
         }
         if (res.ok) {
@@ -151,13 +152,16 @@ export function AppProvider({ children }) {
     fetchFromMongo();
 
     // Auto-sync poll every 6 seconds and on window focus
-    const interval = setInterval(fetchFromMongo, 6000);
+    const interval = setInterval(fetchFromMongo, 3000);
     window.addEventListener('focus', fetchFromMongo);
+    const handleSync = () => { if (document.visibilityState === 'visible') fetchFromMongo(); };
+    document.addEventListener('visibilitychange', handleSync);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
       window.removeEventListener('focus', fetchFromMongo);
+      document.removeEventListener('visibilitychange', handleSync);
     };
   }, []);
 

@@ -142,11 +142,11 @@ export default function EmployeeBadgeModal({ employee, onClose }) {
                 }}>
                   <QRCodeSVG
                     value={qrPayload}
-                    size={68}
+                    size={80}
                     bgColor="#ffffff"
                     fgColor="#0f172a"
-                    level="M"
-                    includeMargin={false}
+                    level="L"
+                    includeMargin={true}
                   />
                   <span style={{ fontSize: 7, color: '#94a3b8', fontWeight: 600, letterSpacing: '0.05em' }}>MESS PASS</span>
                 </div>

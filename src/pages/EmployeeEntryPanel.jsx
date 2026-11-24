@@ -192,40 +192,11 @@ function CameraScanner({ onScan, disabled }) {
   const instanceRef = useRef(null);
   const [cameraState, setCameraState] = useState('idle'); // 'idle' | 'starting' | 'running' | 'error'
   const [errorMsg, setErrorMsg] = useState('');
+  const [availableCameras, setAvailableCameras] = useState([]);
+  const [currentCameraIdx, setCurrentCameraIdx] = useState(0);
 
-  const startCamera = useCallback(async () => {
-    if (instanceRef.current) return;
-    setCameraState('starting');
-    setErrorMsg('');
-    try {
-      const html5QrCode = new Html5Qrcode('qr-reader');
-      instanceRef.current = html5QrCode;
-      await html5QrCode.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: (viewfinderWidth, viewfinderHeight) => {
-            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const edge = Math.max(140, Math.floor(minEdge * 0.75));
-            return { width: edge, height: edge };
-          },
-        },
-        (decodedText) => {
-          if (!disabled) onScan(decodedText);
-        },
-        () => {} // ignore frame misses
-      );
-      setCameraState('running');
-    } catch (err) {
-      setErrorMsg(
-        err?.message?.includes('Permission')
-          ? 'Camera permission denied. Please allow access.'
-          : `Camera error: ${err?.message || 'Unknown error'}`
-      );
-      setCameraState('error');
-      instanceRef.current = null;
-    }
-  }, [onScan, disabled]);
+  const disabledRef = useRef(disabled);
+  disabledRef.current = disabled;
 
   const stopCamera = useCallback(async () => {
     if (instanceRef.current) {
@@ -238,27 +209,129 @@ function CameraScanner({ onScan, disabled }) {
     setCameraState('idle');
   }, []);
 
-  // Stop scanner when disabled (result shown)
-  useEffect(() => {
-    if (disabled && cameraState === 'running') {
-      stopCamera();
+  const startCamera = useCallback(async (targetIdx = 0) => {
+    if (instanceRef.current) {
+      try {
+        await instanceRef.current.stop();
+        instanceRef.current.clear();
+      } catch {}
+      instanceRef.current = null;
     }
-  }, [disabled, cameraState, stopCamera]);
 
+    setCameraState('starting');
+    setErrorMsg('');
+
+    try {
+      // 1. Enumerate available video inputs on the mobile device
+      let devices = [];
+      try {
+        devices = await Html5Qrcode.getCameras();
+        if (devices && devices.length > 0) {
+          setAvailableCameras(devices);
+        }
+      } catch (_) {}
+
+      const html5QrCode = new Html5Qrcode('qr-reader');
+      instanceRef.current = html5QrCode;
+
+      // 2. Select camera: preferred device or ideal back camera
+      let cameraConfig = { facingMode: { ideal: 'environment' } };
+      if (devices && devices.length > 0) {
+        const safeIdx = targetIdx % devices.length;
+        cameraConfig = devices[safeIdx].id;
+        setCurrentCameraIdx(safeIdx);
+      }
+
+      await html5QrCode.start(
+        cameraConfig,
+        {
+          fps: 15,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const edge = Math.max(160, Math.floor(minEdge * 0.85));
+            return { width: edge, height: edge };
+          },
+          aspectRatio: 1.0,
+        },
+        (decodedText) => {
+          if (!disabledRef.current) {
+            onScan(decodedText);
+          }
+        },
+        () => {} // frame misses ignored
+      );
+
+      setCameraState('running');
+    } catch (err) {
+      // Fallback try with generic user or any camera if environment camera constraints failed
+      try {
+        const fallbackQrCode = new Html5Qrcode('qr-reader');
+        instanceRef.current = fallbackQrCode;
+        await fallbackQrCode.start(
+          { facingMode: 'user' },
+          { fps: 15 },
+          (decodedText) => {
+            if (!disabledRef.current) onScan(decodedText);
+          },
+          () => {}
+        );
+        setCameraState('running');
+      } catch (fallbackErr) {
+        setErrorMsg(
+          err?.message?.includes('Permission') || fallbackErr?.message?.includes('Permission')
+            ? 'Camera access denied. Please allow camera permissions in browser settings.'
+            : `Camera error: ${err?.message || 'Could not start camera'}`
+        );
+        setCameraState('error');
+        instanceRef.current = null;
+      }
+    }
+  }, [onScan]);
+
+  // Flip/Switch camera between available lenses (e.g. ultra-wide vs standard back, or front/back)
+  const handleSwitchCamera = useCallback(() => {
+    if (availableCameras.length > 1) {
+      const nextIdx = (currentCameraIdx + 1) % availableCameras.length;
+      startCamera(nextIdx);
+    }
+  }, [availableCameras, currentCameraIdx, startCamera]);
+
+  // Auto-start camera when scanner is mounted
   useEffect(() => {
-    return () => { stopCamera(); };
-  }, [stopCamera]);
+    startCamera();
+    return () => {
+      if (instanceRef.current) {
+        try {
+          instanceRef.current.stop();
+          instanceRef.current.clear();
+        } catch {}
+        instanceRef.current = null;
+      }
+    };
+  }, []);
+
+  // When disabled (showing result card), pause video scanning cleanly without killing camera stream
+  useEffect(() => {
+    if (!instanceRef.current || cameraState !== 'running') return;
+    try {
+      if (disabled) {
+        instanceRef.current.pause(true);
+      } else {
+        instanceRef.current.resume();
+      }
+    } catch (_) {}
+  }, [disabled, cameraState]);
 
   return (
     <div className="flex flex-col items-center gap-2.5 sm:gap-3 w-full">
       {/* Scanner Viewport Box */}
-      <div className="relative w-44 h-44 sm:w-48 sm:h-48 md:w-52 md:h-52 aspect-square rounded-2xl overflow-hidden bg-slate-900 border-2 border-surface-border shadow-xs">
+      <div className="relative w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72 aspect-square rounded-3xl overflow-hidden bg-slate-900 border-2 border-surface-border shadow-md">
         <div id="qr-reader" className="w-full h-full" />
 
         {cameraState !== 'running' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-50 border-2 border-dashed border-slate-200 p-3">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 bg-slate-50 border-2 border-dashed border-slate-200 p-4">
             {cameraState === 'starting' ? (
-              <div className="w-8 h-8 border-3 border-brand-green border-t-transparent rounded-full animate-spin" />
+              <div className="w-9 h-9 border-3 border-brand-green border-t-transparent rounded-full animate-spin" />
             ) : cameraState === 'error' ? (
               <div className="w-12 h-12 rounded-full bg-red-50 border border-red-200 flex items-center justify-center shadow-xs">
                 <CameraOff size={24} className="text-red-500" />
@@ -268,8 +341,8 @@ function CameraScanner({ onScan, disabled }) {
                 <Camera size={24} className="text-brand-green" />
               </div>
             )}
-            <span className="text-slate-600 text-[11px] sm:text-xs font-semibold text-center px-2">
-              {cameraState === 'error' ? errorMsg : 'Camera ready to activate'}
+            <span className="text-slate-600 text-xs font-semibold text-center px-2">
+              {cameraState === 'error' ? errorMsg : 'Camera initializing...'}
             </span>
           </div>
         )}
@@ -277,41 +350,53 @@ function CameraScanner({ onScan, disabled }) {
         {/* Scanning reticle overlay */}
         {cameraState === 'running' && (
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-            <div className="w-36 h-36 sm:w-40 sm:h-40 border-2 border-white/60 rounded-xl relative shadow-lg">
-              <span className="absolute -top-0.5 -left-0.5 w-5 h-5 border-t-4 border-l-4 border-emerald-400 rounded-tl" />
-              <span className="absolute -top-0.5 -right-0.5 w-5 h-5 border-t-4 border-r-4 border-emerald-400 rounded-tr" />
-              <span className="absolute -bottom-0.5 -left-0.5 w-5 h-5 border-b-4 border-l-4 border-emerald-400 rounded-bl" />
-              <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 border-b-4 border-r-4 border-emerald-400 rounded-br" />
+            <div className="w-44 h-44 sm:w-52 sm:h-52 border-2 border-white/60 rounded-2xl relative shadow-lg">
+              <span className="absolute -top-0.5 -left-0.5 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg" />
+              <span className="absolute -top-0.5 -right-0.5 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg" />
+              <span className="absolute -bottom-0.5 -left-0.5 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-lg" />
               {/* Scan line */}
-              <div className="absolute left-1 right-1 top-1/2 h-0.5 bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse" />
+              <div className="absolute left-1 right-1 top-1/2 h-0.5 bg-emerald-400 shadow-[0_0_10px_#34d399] animate-pulse" />
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
         {cameraState !== 'running' ? (
           <button
-            onClick={startCamera}
+            onClick={() => startCamera()}
             disabled={cameraState === 'starting'}
-            className="flex items-center gap-1.5 px-5 py-2 bg-brand-green hover:bg-brand-green-hover disabled:bg-slate-300 text-white rounded-xl font-bold text-xs sm:text-sm transition-all shadow-pill cursor-pointer active:scale-95"
+            className="flex items-center gap-1.5 px-5 py-2.5 bg-brand-green hover:bg-brand-green-hover disabled:bg-slate-300 text-white rounded-xl font-bold text-xs sm:text-sm transition-all shadow-pill cursor-pointer active:scale-95"
           >
             <Camera size={15} />
             {cameraState === 'starting' ? 'Starting Camera…' : 'Start Camera'}
           </button>
         ) : (
-          <button
-            onClick={stopCamera}
-            className="flex items-center gap-1.5 px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white rounded-xl font-semibold text-xs sm:text-sm transition-colors shadow-sm cursor-pointer"
-          >
-            <CameraOff size={15} />
-            Stop Camera
-          </button>
+          <>
+            <button
+              onClick={stopCamera}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-700 hover:bg-slate-800 text-white rounded-xl font-semibold text-xs transition-colors shadow-sm cursor-pointer"
+            >
+              <CameraOff size={14} />
+              Stop
+            </button>
+            {availableCameras.length > 1 && (
+              <button
+                onClick={handleSwitchCamera}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs transition-colors border border-slate-300 cursor-pointer"
+                title="Switch Camera / Lens"
+              >
+                <RotateCcw size={13} />
+                Switch Camera
+              </button>
+            )}
+          </>
         )}
       </div>
 
       <p className="text-slate-400 text-[11px] text-center max-w-xs">
-        Hold employee QR badge in frame · Instant meal deduction
+        Point camera at employee QR badge or live mobile pass · Instant deduction
       </p>
     </div>
   );

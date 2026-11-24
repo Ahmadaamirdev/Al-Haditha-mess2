@@ -481,9 +481,9 @@ export default function EmployeeMobilePass() {
               <div className="p-2 bg-white rounded-xl shadow-xs border border-slate-100 relative">
                 <QRCodeSVG
                   value={qrPayload}
-                  size={170}
-                  level="M"
-                  includeMargin={false}
+                  size={190}
+                  level="L"
+                  includeMargin={true}
                 />
               </div>
 

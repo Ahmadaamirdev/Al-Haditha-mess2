@@ -1077,7 +1077,7 @@ export const alHadithaEmployees = baseEmployees.map((emp) => ({
  * Generate standard QR Code payload JSON string for an employee
  */
 export const DYNAMIC_QR_WINDOW_SEC = 30; // QR rotates every 30 seconds
-export const DYNAMIC_QR_MAX_AGE_SEC = 60; // Max allowed age (prevents screenshots from being reused)
+export const DYNAMIC_QR_MAX_AGE_SEC = 900; // Max allowed age (prevents screenshots from being reused)
 
 /**
  * Generate standard static employee QR payload
@@ -1104,12 +1104,9 @@ export function generateDynamicQrPassPayload(employee) {
   return JSON.stringify({
     type: 'AHP_DYNAMIC_PASS',
     id: employee.id,
-    name: employee.name,
-    category: employee.category || 'Junior',
     token: employee.qrToken || `AHP-QR-${employee.id.replace('AHP-', '')}`,
     ts: nowSec,
-    slot: timeSlot,
-    sig: `${employee.id}-${timeSlot}`
+    slot: timeSlot
   });
 }
 
@@ -1131,14 +1128,14 @@ export function parseAndMatchQrCode(qrString, employeeRoster = alHadithaEmployee
   let dynamicAgeSec = 0;
   const trimmed = qrString.trim();
 
-  // Try parsing JSON format
+  // 1. Try parsing JSON format
   try {
     const parsed = JSON.parse(trimmed);
     if (parsed.id) idToMatch = String(parsed.id).trim().toUpperCase();
     if (parsed.phone) phoneToMatch = String(parsed.phone).trim();
 
     // Anti-screenshot verification for dynamic mobile passes
-    if (parsed.type === 'AHP_DYNAMIC_PASS') {
+    if (parsed.type === 'AHP_DYNAMIC_PASS' || parsed.ts) {
       isDynamic = true;
       const nowSec = Math.floor(Date.now() / 1000);
       const codeTime = Number(parsed.ts) || 0;
@@ -1148,20 +1145,33 @@ export function parseAndMatchQrCode(qrString, employeeRoster = alHadithaEmployee
         return {
           matched: false,
           reason: 'SCREENSHOT_EXPIRED',
-          message: `EXPIRED PASS (${Math.round(dynamicAgeSec)}s old). Static screenshots are prohibited — please show your live mobile pass.`
+          message: `EXPIRED PASS (${Math.round(dynamicAgeSec / 60)} min old). Please show your live mobile pass.`
         };
       }
     }
   } catch {
-    // Try parsing delimiter format: "AHP:AHP-1001:+968..."
-    if (trimmed.startsWith('AHP:')) {
+    // 2. Check if scanned text is a pass URL (e.g. https://.../pass/AHP-1001 or /pass/AHP-1001)
+    const passUrlMatch = trimmed.match(/\/pass\/([A-Za-z0-9_-]+)/i);
+    if (passUrlMatch && passUrlMatch[1]) {
+      idToMatch = passUrlMatch[1].trim().toUpperCase();
+    } else if (trimmed.startsWith('AHP:')) {
       const parts = trimmed.split(':');
       if (parts[1]) idToMatch = parts[1].trim().toUpperCase();
       if (parts[2]) phoneToMatch = parts[2].trim();
     } else {
-      // Direct ID fallback (e.g. scanned "AHP-1001")
-      idToMatch = trimmed.toUpperCase();
+      // 3. Fallback regex to extract any AHP-XXXX pattern inside the scanned string
+      const idExtract = trimmed.match(/AHP-\d{3,5}/i);
+      if (idExtract) {
+        idToMatch = idExtract[0].trim().toUpperCase();
+      } else {
+        idToMatch = trimmed.toUpperCase();
+      }
     }
+  }
+
+  if (idToMatch.includes('/')) {
+    const parts = idToMatch.split('/');
+    idToMatch = parts[parts.length - 1].trim();
   }
 
   if (!idToMatch) {
@@ -1193,4 +1203,3 @@ export function parseAndMatchQrCode(qrString, employeeRoster = alHadithaEmployee
       : `APPROVED: Welcome, ${employee.name}!`
   };
 }
-
