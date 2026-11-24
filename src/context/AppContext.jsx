@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { initialMockData } from '../data/mockData';
 import { alHadithaEmployees, matchEmployeeByIdAndName, parseAndMatchQrCode, generateEmployeeQrPayload } from '../data/employeesData';
-import { getEmployeeRealtimeAllocations, calculateMonthCalendar, MEAL_WINDOWS, isEntryInMonthOrDate } from '../utils/allocationEngine';
+import { getEmployeeRealtimeAllocations, calculateMonthCalendar, MEAL_WINDOWS, isEntryInMonthOrDate, getOmanTime } from '../utils/allocationEngine';
 import { computeCategoryFinance } from '../utils/financeEngine';
 import { harmonizeStateMetrics, getCurrentMonthLabel, defaultNovemberEvents, defaultAlHadithaEvents, defaultAlHadithaEvent } from '../utils/harmonizeEngine';
 import { playSuccessChime, playWarningTone, playErrorTone } from '../utils/audioTones';
@@ -462,7 +462,8 @@ export function AppProvider({ children }) {
 
     const emp = matchResult.employee;
     const now = effectiveDate ? (effectiveDate instanceof Date ? effectiveDate : new Date(effectiveDate)) : new Date();
-    const todayStr = customDate || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const omanTime = getOmanTime(now);
+    const todayStr = customDate || `${omanTime.year}-${String(omanTime.monthIndex + 1).padStart(2, '0')}-${String(omanTime.day).padStart(2, '0')}`;
 
     // Get all meals logged by this employee today
     const todayEmpEntries = (data.mealEntries || []).filter(
@@ -517,7 +518,7 @@ export function AppProvider({ children }) {
       }
     }
 
-    const timeStr = customTimestamp || now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeStr = customTimestamp || omanTime.formattedTime12;
     const actualEntryMethod = entryMethod || (qrCodeString ? 'QR_SCAN' : 'MANUAL');
     const newEntry = {
       id: `MEAL-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`,

@@ -12,42 +12,100 @@
 //    - Daily progression automatically minuses past days' allocations.
 //    - Real-time remaining allocations are displayed upon entry.
 
+/**
+ * Helper to get exact Oman Time (GST, UTC+4) components
+ */
+export function getOmanTime(date = new Date()) {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Muscat',
+      hour12: false,
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    });
+    const parts = formatter.formatToParts(date);
+    const map = {};
+    parts.forEach((p) => { map[p.type] = p.value; });
+    const hour = parseInt(map.hour, 10);
+    const minute = parseInt(map.minute, 10);
+    const second = parseInt(map.second, 10);
+    const year = parseInt(map.year, 10);
+    const month = parseInt(map.month, 10);
+    const day = parseInt(map.day, 10);
+
+    const time12 = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Muscat',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    }).format(date);
+
+    return {
+      hour,
+      minute,
+      second,
+      year,
+      monthIndex: month - 1,
+      day,
+      totalMinutes: hour * 60 + minute,
+      formattedTime12: time12,
+    };
+  } catch (_) {
+    const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+    const oman = new Date(utc + (4 * 3600000));
+    const hour = oman.getHours();
+    const minute = oman.getMinutes();
+    return {
+      hour,
+      minute,
+      second: oman.getSeconds(),
+      year: oman.getFullYear(),
+      monthIndex: oman.getMonth(),
+      day: oman.getDate(),
+      totalMinutes: hour * 60 + minute,
+      formattedTime12: oman.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    };
+  }
+}
+
 export const MEAL_WINDOWS = [
   {
     id: 'breakfast',
     name: 'Breakfast',
-    timeSlot: '09:00 - 10:00',
-    startHour: 9,
+    timeSlot: '05:00 - 11:00',
+    startHour: 5,
     startMinute: 0,
-    endHour: 10,
+    endHour: 11,
     endMinute: 0,
     icon: 'sun'
   },
   {
     id: 'lunch',
     name: 'Lunch',
-    timeSlot: '14:00 - 15:00',
-    startHour: 14,
+    timeSlot: '11:00 - 17:00',
+    startHour: 11,
     startMinute: 0,
-    endHour: 15,
+    endHour: 17,
     endMinute: 0,
     icon: 'utensils'
   },
   {
     id: 'dinner',
     name: 'Dinner',
-    timeSlot: '19:00 - 20:00',
-    startHour: 19,
+    timeSlot: '17:00 - 05:00',
+    startHour: 17,
     startMinute: 0,
-    endHour: 20,
+    endHour: 5,
     endMinute: 0,
     icon: 'moon'
   }
 ];
 
-/**
- * Checks if a meal entry matches a given year, monthIndex (0-11), and optional dayNumber (1-31)
- */
 export function isEntryInMonthOrDate(entry, targetYear, targetMonthIndex, targetDay = null) {
   if (!entry) return false;
 
@@ -174,39 +232,25 @@ export function calculateMonthCalendar(year, monthIndex) {
  * Detect current active meal window or upcoming window based on current hour/minute
  */
 export function getCurrentActiveMealWindow(date = new Date()) {
-  const hour = date.getHours();
-  const minute = date.getMinutes();
-  const currentTotalMins = hour * 60 + minute;
+  const oman = getOmanTime(date);
+  const currentTotalMins = oman.totalMinutes;
 
-  // Breakfast: 09:00 - 10:00 (540 - 600 mins)
-  if (currentTotalMins >= 540 && currentTotalMins < 600) {
-    return { ...MEAL_WINDOWS[0], status: 'ACTIVE' };
-  }
-  // Lunch: 14:00 - 15:00 (840 - 900 mins)
-  if (currentTotalMins >= 840 && currentTotalMins < 900) {
-    return { ...MEAL_WINDOWS[1], status: 'ACTIVE' };
-  }
-  // Dinner: 19:00 - 20:00 (1140 - 1200 mins)
-  if (currentTotalMins >= 1140 && currentTotalMins < 1200) {
-    return { ...MEAL_WINDOWS[2], status: 'ACTIVE' };
+  // 1. Breakfast: 05:00 to 10:59 (300 to 659 mins)
+  if (currentTotalMins >= 300 && currentTotalMins < 660) {
+    return { ...MEAL_WINDOWS[0], status: 'ACTIVE', omanTime: oman.formattedTime12 };
   }
 
-  // If outside active windows, find next or current slot
-  if (currentTotalMins < 600) {
-    return { ...MEAL_WINDOWS[0], status: currentTotalMins < 540 ? 'UPCOMING' : 'EXPIRED' };
+  // 2. Lunch: 11:00 to 16:59 (660 to 1019 mins)
+  if (currentTotalMins >= 660 && currentTotalMins < 1020) {
+    return { ...MEAL_WINDOWS[1], status: 'ACTIVE', omanTime: oman.formattedTime12 };
   }
-  if (currentTotalMins < 900) {
-    return { ...MEAL_WINDOWS[1], status: currentTotalMins < 840 ? 'UPCOMING' : 'EXPIRED' };
-  }
-  return { ...MEAL_WINDOWS[2], status: currentTotalMins < 1140 ? 'UPCOMING' : 'EXPIRED' };
+
+  // 3. Dinner: 17:00 to 04:59 (>= 1020 mins or < 300 mins)
+  return { ...MEAL_WINDOWS[2], status: 'ACTIVE', omanTime: oman.formattedTime12 };
 }
 
 /**
- * Calculates real-time employee meal allocation status:
- * - How many allocations consumed so far
- * - How many expired due to passed time windows
- * - How many remaining for this month
- * - Today's remaining allocations
+ * Calculates real-time employee meal allocation status
  */
 export function getEmployeeRealtimeAllocations({
   employeeId,
@@ -252,64 +296,57 @@ export function getEmployeeRealtimeAllocations({
 
   let expiredCount = 0;
 
-  const todayMealsStatus = {
+    const todayMealsStatus = {
     isOffDay: false,
-    breakfast: { status: 'AVAILABLE', label: '09:00 - 10:00', entry: null },
-    lunch: { status: 'AVAILABLE', label: '14:00 - 15:00', entry: null },
-    dinner: { status: 'AVAILABLE', label: '19:00 - 20:00', entry: null }
+    breakfast: { status: 'AVAILABLE', label: '05:00 - 11:00', entry: null },
+    lunch: { status: 'AVAILABLE', label: '11:00 - 17:00', entry: null },
+    dinner: { status: 'AVAILABLE', label: '17:00 - 05:00', entry: null }
   };
 
-  // 1. Breakfast (09:00 - 10:00)
+  // 1. Breakfast (05:00 - 11:00 Oman Time: 300 - 660 mins)
   if (bfEntry) {
-    todayMealsStatus.breakfast = { status: 'CONSUMED', label: '09:00 - 10:00', entry: bfEntry };
-  } else if (currentTotalMins >= 600) {
+    todayMealsStatus.breakfast = { status: 'CONSUMED', label: '05:00 - 11:00', entry: bfEntry };
+  } else if (currentTotalMins >= 660) {
     expiredCount++;
-    todayMealsStatus.breakfast = { status: 'EXPIRED', label: '09:00 - 10:00', entry: null };
+    todayMealsStatus.breakfast = { status: 'EXPIRED', label: '05:00 - 11:00', entry: null };
   } else {
     todayMealsStatus.breakfast = {
-      status: currentTotalMins >= 540 ? 'ACTIVE_NOW' : 'UPCOMING',
-      label: '09:00 - 10:00',
+      status: currentTotalMins >= 300 ? 'ACTIVE_NOW' : 'UPCOMING',
+      label: '05:00 - 11:00',
       entry: null
     };
   }
 
-  // 2. Lunch (14:00 - 15:00)
+  // 2. Lunch (11:00 - 17:00 Oman Time: 660 - 1020 mins)
   if (lunchEntry) {
-    todayMealsStatus.lunch = { status: 'CONSUMED', label: '14:00 - 15:00', entry: lunchEntry };
-  } else if (currentTotalMins >= 900) {
+    todayMealsStatus.lunch = { status: 'CONSUMED', label: '11:00 - 17:00', entry: lunchEntry };
+  } else if (currentTotalMins >= 1020) {
     expiredCount++;
-    todayMealsStatus.lunch = { status: 'EXPIRED', label: '14:00 - 15:00', entry: null };
+    todayMealsStatus.lunch = { status: 'EXPIRED', label: '11:00 - 17:00', entry: null };
   } else {
     todayMealsStatus.lunch = {
-      status: currentTotalMins >= 840 ? 'ACTIVE_NOW' : 'UPCOMING',
-      label: '14:00 - 15:00',
+      status: currentTotalMins >= 660 ? 'ACTIVE_NOW' : 'UPCOMING',
+      label: '11:00 - 17:00',
       entry: null
     };
   }
 
-  // 3. Dinner (19:00 - 20:00)
+  // 3. Dinner (17:00 - 05:00 Oman Time: >= 1020 mins or < 300 mins)
   if (dinnerEntry) {
-    todayMealsStatus.dinner = { status: 'CONSUMED', label: '19:00 - 20:00', entry: dinnerEntry };
-  } else if (currentTotalMins >= 1200) {
-    expiredCount++;
-    todayMealsStatus.dinner = { status: 'EXPIRED', label: '19:00 - 20:00', entry: null };
+    todayMealsStatus.dinner = { status: 'CONSUMED', label: '17:00 - 05:00', entry: dinnerEntry };
   } else {
     todayMealsStatus.dinner = {
-      status: currentTotalMins >= 1140 ? 'ACTIVE_NOW' : 'UPCOMING',
-      label: '19:00 - 20:00',
+      status: (currentTotalMins >= 1020 || currentTotalMins < 300) ? 'ACTIVE_NOW' : 'UPCOMING',
+      label: '17:00 - 05:00',
       entry: null
     };
   }
 
-  // Calculate remaining allocations: strictly monthly quota minus consumed meals
+  // Calculate remaining allocations
   const totalDeducted = consumedCount;
   const remainingMonthlyAllocations = Math.max(0, totalMonthlyQuota - consumedCount);
-
-  // Today remaining meals count
-  let todayRemainingCount = 0;
-  if (todayMealsStatus.breakfast.status === 'ACTIVE_NOW' || todayMealsStatus.breakfast.status === 'UPCOMING') todayRemainingCount++;
-  if (todayMealsStatus.lunch.status === 'ACTIVE_NOW' || todayMealsStatus.lunch.status === 'UPCOMING') todayRemainingCount++;
-  if (todayMealsStatus.dinner.status === 'ACTIVE_NOW' || todayMealsStatus.dinner.status === 'UPCOMING') todayRemainingCount++;
+  const todayConsumedCount = todayEntries.length;
+  const todayRemainingCount = Math.max(0, 3 - todayConsumedCount);
 
   return {
     employeeId,
@@ -320,6 +357,8 @@ export function getEmployeeRealtimeAllocations({
     totalDeducted,
     remainingMonthlyAllocations,
     todayRemainingCount,
+    todayRemaining: todayRemainingCount,
+    monthRemaining: remainingMonthlyAllocations,
     todayMealsStatus,
     activeDay: currentDay,
     isTodayOffDay: false
