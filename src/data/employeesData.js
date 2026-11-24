@@ -1084,30 +1084,15 @@ export const DYNAMIC_QR_MAX_AGE_SEC = 900; // Max allowed age (prevents screensh
  */
 export function generateEmployeeQrPayload(employee) {
   if (!employee) return '';
-  return JSON.stringify({
-    type: 'AHP_MESS_PASS',
-    id: employee.id,
-    name: employee.name,
-    phone: employee.phone || '',
-    category: employee.category || 'Junior',
-    token: employee.qrToken || `AHP-QR-${employee.id.replace('AHP-', '')}`
-  });
+  return employee.id;
 }
 
 /**
- * Generate dynamic time-based rolling QR payload with anti-screenshot timestamp
+ * Static permanent employee QR payload
  */
 export function generateDynamicQrPassPayload(employee) {
   if (!employee) return '';
-  const nowSec = Math.floor(Date.now() / 1000);
-  const timeSlot = Math.floor(nowSec / DYNAMIC_QR_WINDOW_SEC);
-  return JSON.stringify({
-    type: 'AHP_DYNAMIC_PASS',
-    id: employee.id,
-    token: employee.qrToken || `AHP-QR-${employee.id.replace('AHP-', '')}`,
-    ts: nowSec,
-    slot: timeSlot
-  });
+  return employee.id;
 }
 
 /**

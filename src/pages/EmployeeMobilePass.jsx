@@ -143,33 +143,14 @@ export default function EmployeeMobilePass() {
     }
   }, [routeEmpId, employees]);
 
-  // ── 2. Live clock and 30-second rolling dynamic QR generator
+  // ── 2. Permanent static QR pass (unique per employee, never rotates)
   useEffect(() => {
     if (!activeEmployee) return;
-
-    // Immediately generate first payload
-    setQrPayload(generateDynamicQrPassPayload(activeEmployee));
-    setCountdown(DYNAMIC_QR_WINDOW_SEC);
-
+    setQrPayload(activeEmployee.id);
     const clockTimer = setInterval(() => {
       setLiveClock(new Date());
     }, 1000);
-
-    const countdownTimer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          // Re-generate fresh rolling dynamic token
-          setQrPayload(generateDynamicQrPassPayload(activeEmployee));
-          return DYNAMIC_QR_WINDOW_SEC;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      clearInterval(clockTimer);
-      clearInterval(countdownTimer);
-    };
+    return () => clearInterval(clockTimer);
   }, [activeEmployee]);
 
   // ── 3. Realtime allocations for this employee
@@ -470,48 +451,31 @@ export default function EmployeeMobilePass() {
               </div>
             </div>
 
-            {/* ── Anti-Screenshot Dynamic Rolling QR Code Frame ── */}
-            <div className="relative flex flex-col items-center p-3 bg-slate-50 rounded-2xl border border-surface-border shadow-xs w-full max-w-[240px]">
-              {/* Running Millisecond Security Watermark */}
-              <div className="text-[9px] font-mono text-slate-400 font-semibold mb-1 tabular-nums">
-                SEC-ID: {activeEmployee.id} · {liveClock.toLocaleTimeString()}
+            {/* ── Static Permanent Employee QR Pass ── */}
+            <div className="relative flex flex-col items-center p-4 bg-slate-50 rounded-2xl border border-surface-border shadow-xs w-full max-w-[240px]">
+              {/* Static Pass ID */}
+              <div className="text-[10px] font-mono text-slate-500 font-bold mb-1.5 tabular-nums">
+                PASS-ID: {activeEmployee.id}
               </div>
 
-              {/* QR Code Container */}
-              <div className="p-2 bg-white rounded-xl shadow-xs border border-slate-100 relative">
+              {/* High Contrast Static QR Code */}
+              <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-200 relative flex items-center justify-center">
                 <QRCodeSVG
-                  value={qrPayload}
+                  value={activeEmployee.id}
                   size={190}
                   level="L"
                   includeMargin={true}
                 />
               </div>
 
-              {/* Countdown Progress Bar (Refreshes every 30 seconds) */}
-              <div className="w-full mt-2 space-y-1">
-                <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
-                  <span className="flex items-center gap-1 text-emerald-700">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Live Rolling QR
-                  </span>
-                  <span className="font-mono text-slate-600">
-                    Refreshes in {countdown}s
-                  </span>
-                </div>
-
-                {/* Animated countdown bar */}
-                <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-brand-green transition-all duration-1000 ease-linear rounded-full"
-                    style={{ width: `${(countdown / DYNAMIC_QR_WINDOW_SEC) * 100}%` }}
-                  />
-                </div>
+              {/* Status Badge */}
+              <div className="mt-2.5 flex items-center gap-1.5 text-xs font-bold text-emerald-700">
+                <CheckCircle2 size={14} className="text-emerald-600" />
+                <span>Static Pass · Never Expires</span>
               </div>
-
-              {/* Anti-Screenshot Label */}
-              <div className="mt-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-wider text-center">
-                🛡️ Dynamic Token · Screenshots Prohibited
-              </div>
+              <p className="text-[10px] text-slate-400 text-center mt-0.5">
+                Scan with another mobile at Entry Panel
+              </p>
             </div>
 
             {/* Realtime Quota Status Card */}
