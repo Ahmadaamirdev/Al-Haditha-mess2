@@ -16,6 +16,7 @@ import {
   KeyRound
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { sortMealEntriesDescending } from '../../utils/harmonizeEngine';
 import { CONTRACT_EMPLOYEE_IDS } from '../../data/employeesData';
 
 export default function LiveAttendanceOverview() {
@@ -48,7 +49,7 @@ export default function LiveAttendanceOverview() {
 
   // Filtered entries
   const filteredEntries = useMemo(() => {
-    return mealEntries.filter((entry) => {
+    const filtered = mealEntries.filter((entry) => {
       // Date filter
       if (selectedDate && entry.date !== selectedDate) {
         return false;
@@ -72,6 +73,7 @@ export default function LiveAttendanceOverview() {
       }
       return true;
     });
+    return sortMealEntriesDescending(filtered);
   }, [mealEntries, selectedDate, selectedMeal, searchQuery]);
 
   const exactTodayCount = mealEntries.filter(

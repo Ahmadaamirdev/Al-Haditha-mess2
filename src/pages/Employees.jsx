@@ -23,6 +23,7 @@ import {
   QrCode
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { sortMealEntriesDescending } from '../utils/harmonizeEngine';
 import Modal from '../components/common/Modal';
 import EmployeeBadgeModal from '../components/common/EmployeeBadgeModal';
 import { getEmployeesAllocationMap, calculateMonthCalendar } from '../utils/allocationEngine';
@@ -782,7 +783,7 @@ export default function Employees() {
             <div>
               <span className="font-bold text-slate-primary text-xs block mb-1.5">Recorded Attendance Entries:</span>
               {(() => {
-                const empEntries = (data.mealEntries || []).filter(e => e.employeeId === selectedEmployeeLedger.emp.id);
+                const empEntries = sortMealEntriesDescending((data.mealEntries || []).filter(e => e.employeeId === selectedEmployeeLedger.emp.id));
                 if (empEntries.length === 0) {
                   return (
                     <div className="p-4 bg-slate-50 rounded-xl text-center text-slate-secondary text-xs">

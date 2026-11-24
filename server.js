@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import dns from 'node:dns';
 import { alHadithaEmployees } from './src/data/employeesData.js';
 import { initialMockData } from './src/data/mockData.js';
-import { harmonizeStateMetrics, getCurrentMonthLabel, defaultNovemberEvents, defaultAlHadithaEvents, defaultAlHadithaEvent } from './src/utils/harmonizeEngine.js';
+import { harmonizeStateMetrics, getCurrentMonthLabel, defaultNovemberEvents, defaultAlHadithaEvents, defaultAlHadithaEvent, sortMealEntriesDescending, getEntryTimestamp } from './src/utils/harmonizeEngine.js';
 
 try {
   dns.setServers(['8.8.8.8', '1.1.1.1']);
@@ -92,10 +92,12 @@ app.get('/api/data', async (req, res) => {
     const stateCol = database.collection('appState');
     let state = await stateCol.findOne({ _id: 'current_state' });
 
-    // Always retrieve latest meal entries from mealEntries collection
+    // Always retrieve latest meal entries from mealEntries collection sorted descending
     const mealEntriesCol = database.collection('mealEntries');
     const rawDbEntries = await mealEntriesCol.find({}).toArray();
-    const dbEntries = rawDbEntries.filter((e) => (e.category || '').toUpperCase() !== 'VIP');
+    const dbEntries = sortMealEntriesDescending(
+      rawDbEntries.filter((e) => (e.category || '').toUpperCase() !== 'VIP')
+    );
 
     // Always retrieve latest events from events collection
     const eventsCol = database.collection('events');
@@ -157,7 +159,7 @@ app.post('/api/data', async (req, res) => {
     const mealEntriesCol = database.collection('mealEntries');
     const eventsCol = database.collection('events');
 
-    // Smart merge meal entries (never lose entries)
+    // Smart merge meal entries (never lose entries across multiple devices)
     let clientEntries = Array.isArray(req.body.mealEntries) ? req.body.mealEntries : [];
     const dbEntries = await mealEntriesCol.find({}).toArray();
     const entryMap = new Map();
@@ -167,14 +169,21 @@ app.post('/api/data', async (req, res) => {
     const mergedEntries = Array.from(entryMap.values()).filter(
       (e) => (e.category || '').toUpperCase() !== 'VIP'
     );
-    const cleanEntries = mergedEntries.map((e) => {
+    const sortedEntries = sortMealEntriesDescending(mergedEntries);
+    const cleanEntries = sortedEntries.map((e) => {
       const { _id, ...rest } = e;
       return rest;
     });
 
-    await mealEntriesCol.deleteMany({});
     if (cleanEntries.length > 0) {
-      await mealEntriesCol.insertMany(cleanEntries);
+      const ops = cleanEntries.map((e) => ({
+        updateOne: {
+          filter: { id: e.id },
+          update: { $set: e },
+          upsert: true,
+        },
+      }));
+      await mealEntriesCol.bulkWrite(ops);
     }
 
     // Synchronize events from client (allows deletions, deduplicates, and filters test events)
@@ -224,20 +233,34 @@ app.post('/api/meal-entries', async (req, res) => {
   try {
     const database = await connectToMongo();
     const entry = req.body;
+    if (!entry || !entry.id) {
+      return res.status(400).json({ error: 'Invalid entry payload' });
+    }
+
+    const nowMs = Date.now();
+    const entryToSave = {
+      ...entry,
+      createdAt: entry.createdAt || nowMs,
+      timestampMs: entry.timestampMs || nowMs
+    };
     
     // Save to mealEntries collection if not already existing
-    const existing = await database.collection('mealEntries').findOne({ id: entry.id });
+    const existing = await database.collection('mealEntries').findOne({ id: entryToSave.id });
     if (!existing) {
-      await database.collection('mealEntries').insertOne(entry);
+      await database.collection('mealEntries').insertOne(entryToSave);
     }
 
     const allEntries = await database.collection('mealEntries').find({}).toArray();
+    const sortedEntries = sortMealEntriesDescending(
+      allEntries.filter((e) => (e.category || '').toUpperCase() !== 'VIP')
+    );
+
     const stateCol = database.collection('appState');
     const state = await stateCol.findOne({ _id: 'current_state' });
 
     const harmonized = harmonizeStateMetrics({
       ...(state || {}),
-      mealEntries: allEntries,
+      mealEntries: sortedEntries,
       updatedAt: new Date()
     });
 
@@ -247,7 +270,7 @@ app.post('/api/meal-entries', async (req, res) => {
       { upsert: true }
     );
 
-    res.json({ success: true, entry, harmonized });
+    res.json({ success: true, entry: entryToSave, harmonized });
   } catch (err) {
     console.error('Error logging meal entry to MongoDB:', err);
     res.status(500).json({ error: 'Failed to log meal entry', details: err.message });

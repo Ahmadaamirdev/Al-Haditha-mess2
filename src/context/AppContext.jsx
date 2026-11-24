@@ -3,7 +3,7 @@ import { initialMockData } from '../data/mockData';
 import { alHadithaEmployees, matchEmployeeByIdAndName, parseAndMatchQrCode, generateEmployeeQrPayload } from '../data/employeesData';
 import { getEmployeeRealtimeAllocations, calculateMonthCalendar, MEAL_WINDOWS, isEntryInMonthOrDate, getOmanTime } from '../utils/allocationEngine';
 import { computeCategoryFinance } from '../utils/financeEngine';
-import { harmonizeStateMetrics, getCurrentMonthLabel, defaultNovemberEvents, defaultAlHadithaEvents, defaultAlHadithaEvent } from '../utils/harmonizeEngine';
+import { harmonizeStateMetrics, getCurrentMonthLabel, defaultNovemberEvents, defaultAlHadithaEvents, defaultAlHadithaEvent, sortMealEntriesDescending, getEntryTimestamp } from '../utils/harmonizeEngine';
 import { playSuccessChime, playWarningTone, playErrorTone } from '../utils/audioTones';
 
 const AppContext = createContext(null);
@@ -22,7 +22,7 @@ export function AppProvider({ children }) {
         if (parsed.mealEntries) {
           parsed.mealEntries = parsed.mealEntries.filter((e) => (e.category || '').toUpperCase() !== 'VIP');
         }
-        // Ensure comprehensive 2-week baseline entries are present
+        // Ensure comprehensive baseline entries are present and sorted strictly descending
         const existingIds = new Set((parsed.mealEntries || []).map((e) => e.id));
         const mergedEntries = [...(parsed.mealEntries || [])];
         (initialMockData.mealEntries || []).forEach((entry) => {
@@ -30,7 +30,7 @@ export function AppProvider({ children }) {
             mergedEntries.push(entry);
           }
         });
-        parsed.mealEntries = mergedEntries;
+        parsed.mealEntries = sortMealEntriesDescending(mergedEntries);
 
         // Clean saved events (purge unwanted legacy test events and deduplicate)
         const eventMap = new Map();
@@ -103,7 +103,7 @@ export function AppProvider({ children }) {
                 const sessionMonth = sessionStorage.getItem('alhaditha_session_month');
                 mergedData.selectedMonth = sessionMonth || getCurrentMonthLabel();
 
-                // 1. Merge Meal Entries (strictly excluding any VIP test entries)
+                // 1. Merge Meal Entries (strictly excluding any VIP test entries and sorting newest first)
                 const localEntries = (localData.mealEntries || []).filter(
                   (e) => (e.category || '').toUpperCase() !== 'VIP'
                 );
@@ -111,10 +111,14 @@ export function AppProvider({ children }) {
                   (e) => (e.category || '').toUpperCase() !== 'VIP'
                 );
                 const entryMap = new Map();
-                [...localEntries, ...mongoEntries, ...(initialMockData.mealEntries || [])].forEach((e) => {
-                  if (e && e.id && (e.category || '').toUpperCase() !== 'VIP') entryMap.set(e.id, e);
+                [...mongoEntries, ...localEntries, ...(initialMockData.mealEntries || [])].forEach((e) => {
+                  if (e && e.id && (e.category || '').toUpperCase() !== 'VIP') {
+                    if (!entryMap.has(e.id)) {
+                      entryMap.set(e.id, e);
+                    }
+                  }
                 });
-                mergedData.mealEntries = Array.from(entryMap.values());
+                mergedData.mealEntries = sortMealEntriesDescending(Array.from(entryMap.values()));
 
                 // 2. Events: Prioritize MongoDB events if available, otherwise preserve local state (deduplicated)
                 const sourceEvents = Array.isArray(mongoData.events)
@@ -152,7 +156,7 @@ export function AppProvider({ children }) {
     fetchFromMongo();
 
     // Auto-sync poll every 6 seconds and on window focus
-    const interval = setInterval(fetchFromMongo, 3000);
+    const interval = setInterval(fetchFromMongo, 2000);
     window.addEventListener('focus', fetchFromMongo);
     const handleSync = () => { if (document.visibilityState === 'visible') fetchFromMongo(); };
     document.addEventListener('visibilitychange', handleSync);
@@ -518,10 +522,11 @@ export function AppProvider({ children }) {
       }
     }
 
+    const nowMs = Date.now();
     const timeStr = customTimestamp || omanTime.formattedTime12;
     const actualEntryMethod = entryMethod || (qrCodeString ? 'QR_SCAN' : 'MANUAL');
     const newEntry = {
-      id: `MEAL-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`,
+      id: `MEAL-${nowMs.toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`,
       employeeId: emp.id,
       employeeName: emp.name,
       category: emp.category,
@@ -534,12 +539,14 @@ export function AppProvider({ children }) {
       status: 'Verified',
       entryMethod: actualEntryMethod,
       qrToken: emp.qrToken || `AHP-QR-${emp.id.replace('AHP-', '')}`,
+      createdAt: nowMs,
+      timestampMs: nowMs,
     };
 
     const catKey = emp.category.toLowerCase(); // 'junior', 'senior', 'vip'
 
     const currentEntries = data.mealEntries || [];
-    const updatedEntriesList = [newEntry, ...currentEntries];
+    const updatedEntriesList = sortMealEntriesDescending([newEntry, ...currentEntries]);
 
     const computedAllocations = getEmployeeRealtimeAllocations({
       employeeId: emp.id,
@@ -549,7 +556,7 @@ export function AppProvider({ children }) {
 
     setData((prev) => {
       const prevEntries = prev.mealEntries || [];
-      const updatedMealEntries = [newEntry, ...prevEntries];
+      const updatedMealEntries = sortMealEntriesDescending([newEntry, ...prevEntries]);
 
       // 1. Update Employee Overview eating counts
       const prevCat = prev.employeeOverview?.[catKey] || { total: 40, eating: 0, percentage: 0 };

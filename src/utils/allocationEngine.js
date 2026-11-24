@@ -389,3 +389,5 @@ export function getEmployeesAllocationMap(employees = [], mealEntries = [], curr
   }
   return map;
 }
+
+export { getEntryTimestamp, sortMealEntriesDescending } from './harmonizeEngine.js';

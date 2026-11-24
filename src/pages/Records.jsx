@@ -18,6 +18,7 @@ import {
   KeyRound
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { sortMealEntriesDescending } from '../utils/harmonizeEngine';
 
 export default function Records() {
   const { data, deleteMealEntry, addToast } = useApp();
@@ -44,7 +45,7 @@ export default function Records() {
 
   // Filtered Entries Calculation (Realtime synced with context)
   const filteredEntries = useMemo(() => {
-    return mealEntries.filter((entry) => {
+    const filtered = mealEntries.filter((entry) => {
       // 1. Category Filter
       if (selectedCategory !== 'ALL') {
         const cat = (entry.category || '').toLowerCase();
@@ -81,6 +82,7 @@ export default function Records() {
 
       return true;
     });
+    return sortMealEntriesDescending(filtered);
   }, [mealEntries, selectedCategory, selectedMealType, startDate, endDate, searchQuery]);
 
   // Macro Summaries for Current Filtered Set

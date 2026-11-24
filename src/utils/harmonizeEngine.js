@@ -104,28 +104,72 @@ export const defaultNovemberEvents = [
 export const defaultAlHadithaEvents = defaultNovemberEvents;
 export const defaultAlHadithaEvent = defaultNovemberEvents[1];
 
-// Helper to accurately sort meal entries in descending chronological order (newest first)
+// Robust timestamp extractor that accurately handles millisecond numbers, ISO strings,
+// 12-hour AM/PM with or without seconds, and legacy date strings
+export function getEntryTimestamp(entry) {
+  if (!entry) return 0;
+
+  // 1. Explicit numeric timestamp (milliseconds)
+  if (typeof entry.createdAt === 'number' && !isNaN(entry.createdAt) && entry.createdAt > 0) {
+    return entry.createdAt;
+  }
+  if (typeof entry.timestampMs === 'number' && !isNaN(entry.timestampMs) && entry.timestampMs > 0) {
+    return entry.timestampMs;
+  }
+  if (entry.createdAt instanceof Date) {
+    const t = entry.createdAt.getTime();
+    if (!isNaN(t)) return t;
+  }
+  if (typeof entry.createdAt === 'string') {
+    const parsed = Date.parse(entry.createdAt);
+    if (!isNaN(parsed)) return parsed;
+  }
+
+  // 2. Parse from date ("YYYY-MM-DD") and timestamp ("HH:MM[:SS] AM/PM" or 24h)
+  const dateStr = (entry.date || '').trim();
+  const timeStr = (entry.timestamp || '12:00 PM').trim();
+
+  let year = 1970;
+  let month = 1;
+  let day = 1;
+
+  if (dateStr) {
+    const dateParts = dateStr.split('-');
+    if (dateParts.length === 3) {
+      year = parseInt(dateParts[0], 10) || 1970;
+      month = parseInt(dateParts[1], 10) || 1;
+      day = parseInt(dateParts[2], 10) || 1;
+    }
+  }
+
+  let hours = 12;
+  let minutes = 0;
+  let seconds = 0;
+
+  const timeMatch = timeStr.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (timeMatch) {
+    hours = parseInt(timeMatch[1], 10);
+    minutes = parseInt(timeMatch[2], 10);
+    seconds = timeMatch[3] ? parseInt(timeMatch[3], 10) : 0;
+    const ampm = timeMatch[4] ? timeMatch[4].toUpperCase() : null;
+
+    if (ampm === 'PM' && hours < 12) hours += 12;
+    if (ampm === 'AM' && hours === 12) hours = 0;
+  }
+
+  const computedTime = new Date(year, month - 1, day, hours, minutes, seconds).getTime();
+  return isNaN(computedTime) ? 0 : computedTime;
+}
+
+// Helper to accurately sort meal entries in descending chronological order (strictly newest first)
 export function sortMealEntriesDescending(entries) {
   if (!Array.isArray(entries)) return [];
   return [...entries].sort((a, b) => {
-    const parseTime = (e) => {
-      if (!e) return 0;
-      const d = e.date || '1970-01-01';
-      const t = e.timestamp || '';
-      let hours = 0;
-      let mins = 0;
-      const match = t.match(/(\d+):(\d+)\s*(AM|PM)?/i);
-      if (match) {
-        hours = parseInt(match[1], 10);
-        mins = parseInt(match[2], 10);
-        const ampm = (match[3] || '').toUpperCase();
-        if (ampm === 'PM' && hours < 12) hours += 12;
-        if (ampm === 'AM' && hours === 12) hours = 0;
-      }
-      const timeMs = new Date(`${d}T${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:00`).getTime();
-      return isNaN(timeMs) ? 0 : timeMs;
-    };
-    return parseTime(b) - parseTime(a);
+    const diff = getEntryTimestamp(b) - getEntryTimestamp(a);
+    if (diff !== 0) return diff;
+    const idA = String(a?.id || '');
+    const idB = String(b?.id || '');
+    return idB.localeCompare(idA);
   });
 }
 
