@@ -20,7 +20,6 @@ import {
   WifiOff,
   Shield,
   Clock,
-  Sparkles,
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { useApp } from '../context/AppContext';
@@ -80,12 +79,9 @@ function LiveClock() {
   }, []);
 
   return (
-    <div className="flex items-center gap-1.5 font-mono tabular-nums font-bold text-slate-700 text-xs sm:text-sm">
-      <Clock size={14} className="text-brand-green" />
+    <div className="flex items-center gap-1.5 font-mono tabular-nums font-bold text-slate-600 text-xs sm:text-sm">
+      <Clock size={13} className="text-brand-green" />
       <span>{omanTime}</span>
-      <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 uppercase">
-        GST · Oman
-      </span>
     </div>
   );
 }
@@ -99,51 +95,51 @@ function ResultCard({ result, onReset }) {
   if (result.type === 'success') {
     const { employee, entry, allocations } = result;
     const MealIcon = MEAL_ICONS[entry?.mealType] || Utensils;
-    const methodLabel = entry?.entryMethod === 'QR_SCAN' ? '📷 QR Code Scan' : '⌨ Manual Verification';
+    const methodLabel = entry?.entryMethod === 'QR_SCAN' ? '📷 QR Verified' : '⌨ Manual Verified';
     return (
-      <div className="animate-fade-in flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
+      <div className="animate-fade-in flex flex-col items-center gap-2.5 w-full py-1">
         {/* Approved Green Badge */}
-        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-brand-green to-emerald-600 flex items-center justify-center shadow-pill ring-4 ring-emerald-100">
-          <Check size={28} className="text-white" strokeWidth={3} />
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-green to-emerald-600 flex items-center justify-center shadow-pill ring-4 ring-emerald-100">
+          <Check size={24} className="text-white" strokeWidth={3} />
         </div>
 
         <div className="text-center">
-          <div className="text-xl font-extrabold text-brand-green tracking-tight">MEAL APPROVED</div>
-          <div className="text-slate-500 text-[11px] font-semibold">{methodLabel}</div>
+          <div className="text-lg font-black text-brand-green tracking-tight">APPROVED</div>
+          <div className="text-slate-400 text-[10px] font-semibold">{methodLabel}</div>
         </div>
 
         {/* Employee Info Card */}
-        <div className="w-full bg-slate-50/90 rounded-2xl border border-surface-border p-3.5 space-y-2.5">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-brand-green-light border border-emerald-200 flex items-center justify-center text-brand-green text-lg font-extrabold shadow-xs">
+        <div className="w-full bg-slate-50/90 rounded-2xl border border-slate-200/80 p-3 space-y-2">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-brand-green-light border border-emerald-200 flex items-center justify-center text-brand-green text-base font-extrabold shadow-2xs">
               {(employee?.name || '?').charAt(0)}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="font-extrabold text-slate-900 text-sm truncate">{employee?.name}</div>
-              <div className="text-xs font-mono font-medium text-slate-500">
+              <div className="font-extrabold text-slate-900 text-xs sm:text-sm truncate">{employee?.name}</div>
+              <div className="text-[11px] font-mono font-medium text-slate-500">
                 {employee?.id} · <span className="font-bold text-slate-700">{employee?.category}</span>
               </div>
             </div>
           </div>
 
-          <div className={`w-full flex items-center justify-between bg-gradient-to-r ${MEAL_COLORS[entry?.mealType] || MEAL_COLORS.Lunch} text-white rounded-xl px-3.5 py-2 shadow-xs`}>
-            <span className="font-bold text-xs tracking-wide">{entry?.mealType} Session Verified</span>
-            <MealIcon size={16} />
+          <div className={`w-full flex items-center justify-between bg-gradient-to-r ${MEAL_COLORS[entry?.mealType] || MEAL_COLORS.Lunch} text-white rounded-xl px-3 py-1.5 shadow-2xs`}>
+            <span className="font-bold text-xs tracking-wide">{entry?.mealType} Session</span>
+            <MealIcon size={14} />
           </div>
 
           {/* Realtime Quota Badges */}
           {allocations && (
-            <div className="grid grid-cols-2 gap-2 pt-1 text-center">
-              <div className="bg-white rounded-xl p-2 border border-slate-200/80 shadow-xs">
-                <div className="text-[10px] font-bold text-slate-400 uppercase">Today's Remaining</div>
-                <div className="text-base font-extrabold text-brand-green font-mono">
-                  {allocations.todayRemaining} <span className="text-[10px] text-slate-400 font-sans">/ 3</span>
+            <div className="grid grid-cols-2 gap-2 pt-0.5 text-center">
+              <div className="bg-white rounded-xl p-1.5 border border-slate-200/80 shadow-2xs">
+                <div className="text-[9px] font-bold text-slate-400 uppercase">Today Remaining</div>
+                <div className="text-sm font-extrabold text-brand-green font-mono">
+                  {allocations.todayRemainingCount ?? allocations.todayRemaining ?? 0} <span className="text-[9px] text-slate-400 font-sans">/ 3</span>
                 </div>
               </div>
-              <div className="bg-white rounded-xl p-2 border border-slate-200/80 shadow-xs">
-                <div className="text-[10px] font-bold text-slate-400 uppercase">Monthly Balance</div>
-                <div className="text-base font-extrabold text-brand-blue font-mono">
-                  {allocations.monthRemaining}
+              <div className="bg-white rounded-xl p-1.5 border border-slate-200/80 shadow-2xs">
+                <div className="text-[9px] font-bold text-slate-400 uppercase">Month Balance</div>
+                <div className="text-sm font-extrabold text-brand-blue font-mono">
+                  {allocations.remainingMonthlyAllocations ?? allocations.monthRemaining ?? 0}
                 </div>
               </div>
             </div>
@@ -152,9 +148,9 @@ function ResultCard({ result, onReset }) {
 
         <button
           onClick={onReset}
-          className="text-slate-400 hover:text-slate-600 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+          className="text-slate-400 hover:text-slate-600 text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer pt-1"
         >
-          <RotateCcw size={12} /> Ready for next check-in
+          <RotateCcw size={11} /> Next check-in
         </button>
       </div>
     );
@@ -162,45 +158,45 @@ function ResultCard({ result, onReset }) {
 
   if (result.type === 'warning') {
     return (
-      <div className="animate-fade-in flex flex-col items-center gap-3 w-full max-w-sm mx-auto text-center">
-        <div className="w-14 h-14 rounded-full bg-amber-50 border-2 border-amber-300 flex items-center justify-center shadow-xs">
-          <AlertTriangle size={28} className="text-amber-500" />
+      <div className="animate-fade-in flex flex-col items-center gap-2.5 w-full py-2 text-center">
+        <div className="w-12 h-12 rounded-full bg-amber-50 border-2 border-amber-300 flex items-center justify-center shadow-2xs">
+          <AlertTriangle size={24} className="text-amber-500" />
         </div>
         <div>
-          <div className="text-lg font-bold text-amber-700">Meal Already Claimed</div>
-          <div className="text-slate-500 text-xs mt-1 max-w-xs">{result.message}</div>
+          <div className="text-base font-bold text-amber-700">Already Claimed</div>
+          <div className="text-slate-500 text-[11px] mt-0.5 max-w-xs">{result.message}</div>
         </div>
         <button
           onClick={onReset}
-          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+          className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 mt-1"
         >
-          <RotateCcw size={13} /> Dismiss
+          <RotateCcw size={12} /> Dismiss
         </button>
       </div>
     );
   }
 
   return (
-    <div className="animate-fade-in flex flex-col items-center gap-3 w-full max-w-sm mx-auto text-center">
-      <div className="w-14 h-14 rounded-full bg-red-50 border-2 border-red-300 flex items-center justify-center shadow-xs">
-        <XCircle size={28} className="text-red-500" />
+    <div className="animate-fade-in flex flex-col items-center gap-2.5 w-full py-2 text-center">
+      <div className="w-12 h-12 rounded-full bg-red-50 border-2 border-red-300 flex items-center justify-center shadow-2xs">
+        <XCircle size={24} className="text-red-500" />
       </div>
       <div>
-        <div className="text-lg font-bold text-red-600">Verification Failed</div>
-        <div className="text-slate-500 text-xs mt-1 max-w-xs">{result.message}</div>
+        <div className="text-base font-bold text-red-600">Verification Failed</div>
+        <div className="text-slate-500 text-[11px] mt-0.5 max-w-xs">{result.message}</div>
       </div>
       <button
         onClick={onReset}
-        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+        className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 mt-1"
       >
-        <RotateCcw size={13} /> Try Again
+        <RotateCcw size={12} /> Try Again
       </button>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────
-// Camera QR Scanner Component
+// Camera QR Scanner Component (Compact & Premium)
 // ─────────────────────────────────────────────────────────
 function CameraScanner({ onScan, disabled }) {
   const instanceRef = useRef(null);
@@ -226,7 +222,6 @@ function CameraScanner({ onScan, disabled }) {
   }, []);
 
   const startCamera = useCallback(async (targetIdx = 0) => {
-    // 1. Cleanly stop previous instance
     if (instanceRef.current) {
       try {
         await instanceRef.current.stop();
@@ -242,10 +237,9 @@ function CameraScanner({ onScan, disabled }) {
 
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera access not supported in this browser. Please use a modern HTTPS browser.');
+        throw new Error('Camera access not supported in this browser.');
       }
 
-      // Explicit permission check with user gesture
       let stream = null;
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
@@ -253,7 +247,7 @@ function CameraScanner({ onScan, disabled }) {
         try {
           stream = await navigator.mediaDevices.getUserMedia({ video: true });
         } catch (permErr) {
-          throw new Error('Camera permission denied. Please allow camera access in browser address bar.');
+          throw new Error('Camera permission denied.');
         }
       }
 
@@ -261,7 +255,6 @@ function CameraScanner({ onScan, disabled }) {
         stream.getTracks().forEach((track) => track.stop());
       }
 
-      // Enumerate available cameras
       let devices = [];
       try {
         devices = await Html5Qrcode.getCameras();
@@ -286,7 +279,7 @@ function CameraScanner({ onScan, disabled }) {
           fps: 15,
           qrbox: (viewfinderWidth, viewfinderHeight) => {
             const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const edge = Math.max(160, Math.floor(minEdge * 0.85));
+            const edge = Math.max(140, Math.floor(minEdge * 0.85));
             return { width: edge, height: edge };
           },
           aspectRatio: 1.0,
@@ -302,7 +295,6 @@ function CameraScanner({ onScan, disabled }) {
       setCameraState('running');
     } catch (err) {
       console.error('Camera startup error:', err);
-      // Fallback try with generic front camera
       try {
         const container = document.getElementById('qr-reader');
         if (container) container.innerHTML = '';
@@ -320,7 +312,7 @@ function CameraScanner({ onScan, disabled }) {
       } catch (fallbackErr) {
         setErrorMsg(
           err?.message?.includes('denied') || fallbackErr?.message?.includes('denied')
-            ? 'Camera permission denied. Please allow camera access in browser.'
+            ? 'Camera access denied in browser settings.'
             : (err?.message || 'Could not start camera.')
         );
         setCameraState('error');
@@ -336,7 +328,6 @@ function CameraScanner({ onScan, disabled }) {
     }
   }, [availableCameras, currentCameraIdx, startCamera]);
 
-  // Clean cleanup on unmount
   useEffect(() => {
     return () => {
       if (instanceRef.current) {
@@ -349,7 +340,6 @@ function CameraScanner({ onScan, disabled }) {
     };
   }, []);
 
-  // When disabled (showing approval card), pause scan without killing hardware camera stream
   useEffect(() => {
     if (!instanceRef.current || cameraState !== 'running') return;
     try {
@@ -363,24 +353,24 @@ function CameraScanner({ onScan, disabled }) {
 
   return (
     <div className="flex flex-col items-center gap-3 w-full">
-      {/* Scanner Viewport Box */}
-      <div className="relative w-56 h-56 sm:w-64 sm:h-64 aspect-square rounded-2xl overflow-hidden bg-slate-900 border-2 border-slate-200 shadow-sm flex items-center justify-center">
+      {/* Compact Viewport Box */}
+      <div className="relative w-48 h-48 sm:w-52 sm:h-52 aspect-square rounded-2xl overflow-hidden bg-slate-900 border border-slate-200/90 shadow-inner flex items-center justify-center">
         <div id="qr-reader" className="w-full h-full" />
 
         {cameraState !== 'running' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-50 border-2 border-dashed border-slate-200 p-4 text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-50 border-2 border-dashed border-slate-200 p-3 text-center">
             {cameraState === 'starting' ? (
-              <div className="w-9 h-9 border-3 border-brand-green border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-3 border-brand-green border-t-transparent rounded-full animate-spin" />
             ) : cameraState === 'error' ? (
-              <div className="w-12 h-12 rounded-full bg-red-50 border border-red-200 flex items-center justify-center shadow-xs">
-                <CameraOff size={24} className="text-red-500" />
+              <div className="w-10 h-10 rounded-full bg-red-50 border border-red-200 flex items-center justify-center shadow-2xs">
+                <CameraOff size={20} className="text-red-500" />
               </div>
             ) : (
-              <div className="w-12 h-12 rounded-full bg-brand-green-light border border-emerald-200 flex items-center justify-center shadow-xs">
-                <Camera size={24} className="text-brand-green" />
+              <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center shadow-2xs">
+                <Camera size={20} className="text-brand-green" />
               </div>
             )}
-            <span className="text-slate-600 text-xs font-semibold px-2">
+            <span className="text-slate-500 text-[11px] font-semibold px-2">
               {cameraState === 'error' ? errorMsg : 'Camera ready to activate'}
             </span>
           </div>
@@ -389,54 +379,53 @@ function CameraScanner({ onScan, disabled }) {
         {/* Scanning reticle overlay */}
         {cameraState === 'running' && (
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-            <div className="w-44 h-44 sm:w-52 sm:h-52 border-2 border-white/60 rounded-2xl relative shadow-lg">
-              <span className="absolute -top-0.5 -left-0.5 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg" />
-              <span className="absolute -top-0.5 -right-0.5 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg" />
-              <span className="absolute -bottom-0.5 -left-0.5 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg" />
-              <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-lg" />
-              {/* Pulsing scan line */}
-              <div className="absolute left-1 right-1 top-1/2 h-0.5 bg-emerald-400 shadow-[0_0_10px_#34d399] animate-pulse" />
+            <div className="w-38 h-38 sm:w-42 sm:h-42 border-2 border-white/60 rounded-xl relative shadow-lg">
+              <span className="absolute -top-0.5 -left-0.5 w-5 h-5 border-t-4 border-l-4 border-emerald-400 rounded-tl" />
+              <span className="absolute -top-0.5 -right-0.5 w-5 h-5 border-t-4 border-r-4 border-emerald-400 rounded-tr" />
+              <span className="absolute -bottom-0.5 -left-0.5 w-5 h-5 border-b-4 border-l-4 border-emerald-400 rounded-bl" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 border-b-4 border-r-4 border-emerald-400 rounded-br" />
+              <div className="absolute left-1 right-1 top-1/2 h-0.5 bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse" />
             </div>
           </div>
         )}
       </div>
 
-      {/* Control Buttons */}
+      {/* Controls */}
       <div className="flex items-center gap-2">
         {cameraState !== 'running' ? (
           <button
             onClick={() => startCamera()}
             disabled={cameraState === 'starting'}
-            className="flex items-center gap-2 px-6 py-2.5 bg-brand-green hover:bg-brand-green-hover disabled:bg-slate-300 text-white rounded-xl font-bold text-xs sm:text-sm transition-all shadow-pill cursor-pointer active:scale-95"
+            className="flex items-center gap-1.5 px-5 py-2 bg-brand-green hover:bg-brand-green-hover disabled:bg-slate-300 text-white rounded-xl font-bold text-xs transition-all shadow-pill cursor-pointer active:scale-95"
           >
-            <Camera size={16} />
+            <Camera size={14} />
             {cameraState === 'starting' ? 'Starting Camera…' : 'Start Camera'}
           </button>
         ) : (
           <>
             <button
               onClick={stopCamera}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-700 hover:bg-slate-800 text-white rounded-xl font-semibold text-xs transition-colors shadow-sm cursor-pointer"
+              className="flex items-center gap-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-xl font-semibold text-xs transition-colors shadow-2xs cursor-pointer"
             >
-              <CameraOff size={14} />
+              <CameraOff size={13} />
               Stop
             </button>
             {availableCameras.length > 1 && (
               <button
                 onClick={handleSwitchCamera}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs transition-colors border border-slate-300 cursor-pointer"
+                className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs transition-colors border border-slate-300 cursor-pointer"
                 title="Switch Camera Lens"
               >
-                <RotateCcw size={13} />
-                Switch Camera
+                <RotateCcw size={12} />
+                Switch
               </button>
             )}
           </>
         )}
       </div>
 
-      <p className="text-slate-400 text-[11px] text-center max-w-xs">
-        Point camera at employee QR badge or live mobile pass · Instant deduction
+      <p className="text-slate-400 text-[10px] text-center max-w-xs">
+        Point camera at employee QR badge · Instant deduction
       </p>
     </div>
   );
@@ -454,16 +443,16 @@ export default function EmployeeEntryPanel() {
   // Auto-identified live meal session based on Oman GST Time (continuous 24/7)
   const [currentSession, setCurrentSession] = useState(() => getCurrentActiveMealWindow(new Date()));
 
-  // Keep session synchronized dynamically with the live Oman clock
+  // Keep session synchronized dynamically
   useEffect(() => {
     const updateSession = () => {
       setCurrentSession(getCurrentActiveMealWindow(new Date()));
     };
-    const timer = setInterval(updateSession, 10000); // Re-check every 10s
+    const timer = setInterval(updateSession, 10000);
     return () => clearInterval(timer);
   }, []);
 
-  const selectedMeal = currentSession.name; // Always bound to the active session!
+  const selectedMeal = currentSession.name;
 
   // Form state (manual)
   const [idInput, setIdInput] = useState('');
@@ -476,7 +465,6 @@ export default function EmployeeEntryPanel() {
 
   const idInputRef = useRef(null);
 
-  // Auto-reset handler
   const scheduleAutoReset = useCallback(() => {
     if (autoResetRef.current) clearTimeout(autoResetRef.current);
     autoResetRef.current = setTimeout(() => {
@@ -495,7 +483,6 @@ export default function EmployeeEntryPanel() {
     setIsProcessing(false);
   }, []);
 
-  // Shared Check-In Processor
   const processCheckIn = useCallback(
     ({ qrCodeString, employeeId, employeeName, entryMethod }) => {
       if (isProcessing) return;
@@ -545,7 +532,6 @@ export default function EmployeeEntryPanel() {
     [isProcessing, recordMealEntry, selectedMeal, scheduleAutoReset]
   );
 
-  // QR Scan Handler
   const handleQrScan = useCallback(
     (decodedText) => {
       if (result || isProcessing) return;
@@ -554,7 +540,6 @@ export default function EmployeeEntryPanel() {
     [result, isProcessing, processCheckIn]
   );
 
-  // Manual Submission Handler
   const handleManualSubmit = (e) => {
     e?.preventDefault();
     const cleanId = idInput.trim().toUpperCase();
@@ -612,135 +597,110 @@ export default function EmployeeEntryPanel() {
         </div>
       </header>
 
-      {/* ── Main Kiosk Body (Responsive Container) ── */}
+      {/* ── Main Kiosk Body ── */}
       <main className="flex-1 px-4 py-6 sm:py-8 flex flex-col items-center justify-center w-full">
-        <div className="w-full max-w-sm sm:max-w-md mx-auto flex flex-col items-center gap-3.5 my-auto">
-          {/* Terminal Title & Live Oman Clock */}
+        <div className="w-full max-w-[360px] sm:max-w-[370px] mx-auto flex flex-col items-center gap-3.5 my-auto">
+          {/* Terminal Title & Live Clock */}
           <div className="text-center space-y-1 w-full">
-            <div className="inline-flex items-center gap-1.5 bg-brand-green-light text-brand-green border border-emerald-200 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wider shadow-xs">
-              <Shield size={11} className="text-brand-green" />
-              <span>Mess Hall Entry Terminal</span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+            <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
               Staff Meal Check-In
             </h1>
-            <div className="flex items-center justify-center pt-0.5">
+            <div className="flex items-center justify-center">
               <LiveClock />
             </div>
           </div>
 
-          {/* Unified Active Meal Session Banner (Auto-Identified by Oman Time) */}
-          <div className="w-full bg-white rounded-2xl border-2 border-emerald-500/20 p-3.5 shadow-sm flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-green to-emerald-600 flex items-center justify-center text-white shadow-xs shrink-0">
+          {/* ── Single Unified Premium Card ── */}
+          <div className="w-full bg-white rounded-[26px] border border-slate-200/90 shadow-xl shadow-slate-200/50 p-4 sm:p-5 flex flex-col items-center gap-3.5">
+            {/* Unified Card Header: Active Session on Left + Mode Switcher on Right */}
+            <div className="w-full flex items-center justify-between pb-3 border-b border-slate-100">
+              {/* Session Display (Dinner / Lunch / Breakfast) - Clean without extra text */}
+              <div className="flex items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200/70 px-3 py-1.5 rounded-xl font-extrabold text-xs tracking-tight shadow-2xs">
                 {currentSession.name === 'Breakfast' ? (
-                  <Coffee size={20} />
+                  <Coffee size={15} className="text-emerald-600" />
                 ) : currentSession.name === 'Lunch' ? (
-                  <Sun size={20} />
+                  <Sun size={15} className="text-emerald-600" />
                 ) : (
-                  <Moon size={20} />
+                  <Moon size={15} className="text-emerald-600" />
                 )}
+                <span>{currentSession.name}</span>
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-green">
-                    Active Service
-                  </span>
-                </div>
-                <div className="text-base font-extrabold text-slate-900 leading-tight">
-                  {currentSession.name}
-                </div>
-              </div>
-            </div>
 
-            <div className="text-right shrink-0">
-              <div className="text-xs font-mono font-bold text-slate-800">
-                {currentSession.timeSlot}
-              </div>
-              <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
-                Oman GST Time
-              </div>
-            </div>
-          </div>
-
-          {/* Mode Switcher Tabs (QR Scan vs Manual Verification) */}
-          <div className="grid grid-cols-2 gap-1 w-full bg-slate-200/80 p-1 rounded-xl border border-slate-300/70">
-            <button
-              onClick={() => { setMode('qr'); handleReset(); }}
-              className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                mode === 'qr'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <QrCode size={14} className={mode === 'qr' ? 'text-brand-green' : 'text-slate-400'} />
-              <span>QR Scan</span>
-            </button>
-            <button
-              onClick={() => { setMode('manual'); handleReset(); }}
-              className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                mode === 'manual'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Keyboard size={14} className={mode === 'manual' ? 'text-brand-green' : 'text-slate-400'} />
-              <span>Manual Entry</span>
-            </button>
-          </div>
-
-          {/* Interactive Card Container (QR Scanner or Result or Manual Form) */}
-          <div className="w-full bg-white rounded-3xl border border-surface-border shadow-sm p-5 sm:p-6 flex flex-col items-center">
-            {result ? (
-              <ResultCard result={result} onReset={handleReset} />
-            ) : mode === 'qr' ? (
-              <CameraScanner onScan={handleQrScan} disabled={!!result || isProcessing} />
-            ) : (
-              /* Manual Entry Form */
-              <form onSubmit={handleManualSubmit} className="w-full space-y-3.5">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Employee ID
-                  </label>
-                  <div className="relative">
-                    <input
-                      ref={idInputRef}
-                      type="text"
-                      value={idInput}
-                      onChange={(e) => setIdInput(e.target.value.toUpperCase())}
-                      placeholder="e.g. AHP-1001"
-                      className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-surface-border rounded-xl text-xs sm:text-sm font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green"
-                    />
-                    <IdCard size={15} className="absolute left-3 top-3 text-slate-400" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Full Name
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={nameInput}
-                      onChange={(e) => setNameInput(e.target.value)}
-                      placeholder="e.g. Tariq Al-Balushi"
-                      className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-surface-border rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green"
-                    />
-                    <User size={15} className="absolute left-3 top-3 text-slate-400" />
-                  </div>
-                </div>
-
+              {/* Seamless Mode Switcher Tabs */}
+              <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/70 text-[11px] font-bold">
                 <button
-                  type="submit"
-                  disabled={isProcessing}
-                  className="w-full py-2.5 bg-brand-green hover:bg-brand-green-hover disabled:bg-slate-300 text-white font-bold rounded-xl text-xs sm:text-sm transition-all shadow-pill cursor-pointer"
+                  onClick={() => { setMode('qr'); handleReset(); }}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    mode === 'qr' ? 'bg-white text-slate-900 shadow-2xs font-extrabold' : 'text-slate-500 hover:text-slate-800'
+                  }`}
                 >
-                  Verify & Log {currentSession.name}
+                  <QrCode size={12} className={mode === 'qr' ? 'text-brand-green' : 'text-slate-400'} />
+                  <span>QR Scan</span>
                 </button>
-              </form>
-            )}
+                <button
+                  onClick={() => { setMode('manual'); handleReset(); }}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    mode === 'manual' ? 'bg-white text-slate-900 shadow-2xs font-extrabold' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Keyboard size={12} className={mode === 'manual' ? 'text-brand-green' : 'text-slate-400'} />
+                  <span>Manual</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Content Area (QR Scanner or Result or Manual Form) */}
+            <div className="w-full flex flex-col items-center">
+              {result ? (
+                <ResultCard result={result} onReset={handleReset} />
+              ) : mode === 'qr' ? (
+                <CameraScanner onScan={handleQrScan} disabled={!!result || isProcessing} />
+              ) : (
+                /* Manual Entry Form */
+                <form onSubmit={handleManualSubmit} className="w-full space-y-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Employee ID
+                    </label>
+                    <div className="relative">
+                      <input
+                        ref={idInputRef}
+                        type="text"
+                        value={idInput}
+                        onChange={(e) => setIdInput(e.target.value.toUpperCase())}
+                        placeholder="e.g. AHP-1001"
+                        className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-surface-border rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green"
+                      />
+                      <IdCard size={14} className="absolute left-2.5 top-2.5 text-slate-400" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Full Name
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={nameInput}
+                        onChange={(e) => setNameInput(e.target.value)}
+                        placeholder="e.g. Tariq Al-Balushi"
+                        className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-surface-border rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green"
+                      />
+                      <User size={14} className="absolute left-2.5 top-2.5 text-slate-400" />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isProcessing}
+                    className="w-full py-2.5 bg-brand-green hover:bg-brand-green-hover disabled:bg-slate-300 text-white font-bold rounded-xl text-xs transition-all shadow-pill cursor-pointer mt-1"
+                  >
+                    Verify & Log {currentSession.name}
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       </main>
