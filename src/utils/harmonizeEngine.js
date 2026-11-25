@@ -173,6 +173,14 @@ export function sortMealEntriesDescending(entries) {
   });
 }
 
+// Format a time string to strictly exclude seconds in tables & displays (e.g. "1:20:04 PM" -> "1:20 PM")
+export function formatTimeWithoutSeconds(timeStr) {
+  if (!timeStr || typeof timeStr !== 'string') return timeStr || '';
+  return timeStr.replace(/(\b\d{1,2}:\d{2}):\d{2}(\s*[AaPp][Mm])?/, (match, hourMinute, ampm) => {
+    return ampm ? `${hourMinute}${ampm}` : hourMinute;
+  });
+}
+
 // Dynamic Month Helpers - dynamically defaults to current calendar month & year
 export function getCurrentMonthLabel() {
   const now = new Date();

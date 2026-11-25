@@ -18,7 +18,7 @@ import {
   KeyRound
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { sortMealEntriesDescending } from '../utils/harmonizeEngine';
+import { sortMealEntriesDescending, formatTimeWithoutSeconds } from '../utils/harmonizeEngine';
 
 export default function Records() {
   const { data, deleteMealEntry, addToast } = useApp();
@@ -143,7 +143,7 @@ export default function Records() {
     const rows = filteredEntries.map((e) => [
       `"${e.id || ''}"`,
       `"${e.date || ''}"`,
-      `"${e.timestamp || ''}"`,
+      `"${formatTimeWithoutSeconds(e.timestamp) || ''}"`,
       `"${e.employeeId || ''}"`,
       `"${(e.employeeName || '').replace(/"/g, '""')}"`,
       `"${e.category || ''}"`,
@@ -429,7 +429,7 @@ export default function Records() {
                     <td className="px-4 py-3 font-mono text-slate-500 whitespace-nowrap">
                       <div className="flex items-center space-x-1">
                         <Clock className="w-3 h-3 text-slate-400 shrink-0" />
-                        <span>{entry.timestamp || 'N/A'}</span>
+                        <span>{formatTimeWithoutSeconds(entry.timestamp) || 'N/A'}</span>
                       </div>
                     </td>
 

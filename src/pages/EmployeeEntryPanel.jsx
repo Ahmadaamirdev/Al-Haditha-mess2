@@ -353,37 +353,42 @@ function CameraScanner({ onScan, disabled }) {
 
   return (
     <div className="flex flex-col items-center gap-3 w-full">
-      {/* Compact Viewport Box */}
-      <div className="relative w-48 h-48 sm:w-52 sm:h-52 aspect-square rounded-2xl overflow-hidden bg-slate-900 border border-slate-200/90 shadow-inner flex items-center justify-center">
+      {/* Viewport Box */}
+      <div className="relative w-52 h-52 sm:w-60 sm:h-60 aspect-square rounded-2xl overflow-hidden bg-navy-950 border-2 border-slate-200/90 shadow-inner flex items-center justify-center">
         <div id="qr-reader" className="w-full h-full" />
 
         {cameraState !== 'running' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-50 border-2 border-dashed border-slate-200 p-3 text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 bg-gradient-to-b from-slate-50 to-slate-100/90 border-2 border-dashed border-slate-200 p-4 text-center">
             {cameraState === 'starting' ? (
-              <div className="w-8 h-8 border-3 border-brand-green border-t-transparent rounded-full animate-spin" />
+              <div className="w-9 h-9 border-3 border-brand-green border-t-transparent rounded-full animate-spin" />
             ) : cameraState === 'error' ? (
-              <div className="w-10 h-10 rounded-full bg-red-50 border border-red-200 flex items-center justify-center shadow-2xs">
-                <CameraOff size={20} className="text-red-500" />
+              <div className="w-11 h-11 rounded-full bg-red-50 border border-red-200 flex items-center justify-center shadow-2xs">
+                <CameraOff size={22} className="text-red-500" />
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center shadow-2xs">
-                <Camera size={20} className="text-brand-green" />
+              <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center shadow-2xs ring-4 ring-emerald-50/60">
+                <Camera size={22} className="text-brand-green" />
               </div>
             )}
-            <span className="text-slate-500 text-[11px] font-semibold px-2">
-              {cameraState === 'error' ? errorMsg : 'Camera ready to activate'}
-            </span>
+            <div className="space-y-0.5">
+              <span className="text-slate-800 text-xs font-bold block">
+                {cameraState === 'error' ? 'Camera Error' : 'Scanner Ready'}
+              </span>
+              <span className="text-slate-400 text-[11px] font-medium block max-w-[190px]">
+                {cameraState === 'error' ? errorMsg : 'Activate camera to scan employee QR badge'}
+              </span>
+            </div>
           </div>
         )}
 
         {/* Scanning reticle overlay */}
         {cameraState === 'running' && (
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-            <div className="w-38 h-38 sm:w-42 sm:h-42 border-2 border-white/60 rounded-xl relative shadow-lg">
-              <span className="absolute -top-0.5 -left-0.5 w-5 h-5 border-t-4 border-l-4 border-emerald-400 rounded-tl" />
-              <span className="absolute -top-0.5 -right-0.5 w-5 h-5 border-t-4 border-r-4 border-emerald-400 rounded-tr" />
-              <span className="absolute -bottom-0.5 -left-0.5 w-5 h-5 border-b-4 border-l-4 border-emerald-400 rounded-bl" />
-              <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 border-b-4 border-r-4 border-emerald-400 rounded-br" />
+            <div className="w-40 h-40 sm:w-48 sm:h-48 border-2 border-white/60 rounded-xl relative shadow-lg">
+              <span className="absolute -top-0.5 -left-0.5 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl" />
+              <span className="absolute -top-0.5 -right-0.5 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr" />
+              <span className="absolute -bottom-0.5 -left-0.5 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br" />
               <div className="absolute left-1 right-1 top-1/2 h-0.5 bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse" />
             </div>
           </div>
@@ -396,10 +401,10 @@ function CameraScanner({ onScan, disabled }) {
           <button
             onClick={() => startCamera()}
             disabled={cameraState === 'starting'}
-            className="flex items-center gap-1.5 px-5 py-2 bg-brand-green hover:bg-brand-green-hover disabled:bg-slate-300 text-white rounded-xl font-bold text-xs transition-all shadow-pill cursor-pointer active:scale-95"
+            className="flex items-center gap-2 px-6 py-2.5 bg-brand-green hover:bg-brand-green-hover disabled:bg-slate-300 text-white rounded-xl font-bold text-xs sm:text-sm transition-all shadow-pill cursor-pointer active:scale-95"
           >
-            <Camera size={14} />
-            {cameraState === 'starting' ? 'Starting Camera…' : 'Start Camera'}
+            <Camera size={15} />
+            {cameraState === 'starting' ? 'Starting Camera…' : 'Start Camera Scanner'}
           </button>
         ) : (
           <>
@@ -558,14 +563,14 @@ export default function EmployeeEntryPanel() {
   }, [mode]);
 
   return (
-    <div className="min-h-screen bg-[#F5F8FB] text-slate-primary flex flex-col antialiased relative selection:bg-brand-green/20 selection:text-brand-green">
+    <div className="min-h-screen bg-[#F5F8FB] text-slate-primary flex flex-col antialiased relative selection:bg-brand-green/20 selection:text-brand-green overflow-x-hidden font-sans">
       {/* ── Top Header Bar ── */}
       <header className="shrink-0 bg-white/95 backdrop-blur-md px-4 sm:px-6 py-2.5 border-b border-surface-border flex items-center justify-between shadow-xs sticky top-0 z-30">
         <Link
           to="/"
-          className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 text-xs sm:text-sm font-semibold transition-colors"
+          className="flex items-center gap-1.5 text-slate-secondary hover:text-slate-primary text-xs sm:text-sm font-semibold transition-colors"
         >
-          <ArrowLeft size={16} className="text-slate-400" />
+          <ArrowLeft size={16} className="text-slate-muted" />
           <span>Dashboard</span>
         </Link>
 
@@ -584,7 +589,8 @@ export default function EmployeeEntryPanel() {
         {/* Live Atlas Status */}
         <div className="flex items-center gap-2">
           {isMongoConnected ? (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-emerald-50 text-brand-green border border-emerald-200">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-brand-green-light text-brand-green border border-emerald-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-green animate-pulse" />
               <Wifi size={12} className="text-brand-green" />
               <span className="hidden xs:inline">Live Atlas</span>
             </span>
@@ -598,11 +604,11 @@ export default function EmployeeEntryPanel() {
       </header>
 
       {/* ── Main Kiosk Body ── */}
-      <main className="flex-1 px-4 py-6 sm:py-8 flex flex-col items-center justify-center w-full">
-        <div className="w-full max-w-[360px] sm:max-w-[370px] mx-auto flex flex-col items-center gap-3.5 my-auto">
+      <main className="flex-1 px-4 py-6 sm:py-8 flex flex-col items-center justify-center w-full relative z-10">
+        <div className="w-full max-w-[380px] sm:max-w-[400px] mx-auto flex flex-col items-center gap-3.5 my-auto">
           {/* Terminal Title & Live Clock */}
           <div className="text-center space-y-1 w-full">
-            <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
+            <h1 className="text-lg sm:text-xl font-extrabold text-slate-primary tracking-tight">
               Staff Meal Check-In
             </h1>
             <div className="flex items-center justify-center">
@@ -610,40 +616,40 @@ export default function EmployeeEntryPanel() {
             </div>
           </div>
 
-          {/* ── Single Unified Premium Card ── */}
-          <div className="w-full bg-white rounded-[26px] border border-slate-200/90 shadow-xl shadow-slate-200/50 p-4 sm:p-5 flex flex-col items-center gap-3.5">
-            {/* Unified Card Header: Active Session on Left + Mode Switcher on Right */}
-            <div className="w-full flex items-center justify-between pb-3 border-b border-slate-100">
-              {/* Session Display (Dinner / Lunch / Breakfast) - Clean without extra text */}
-              <div className="flex items-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200/70 px-3 py-1.5 rounded-xl font-extrabold text-xs tracking-tight shadow-2xs">
+          {/* ── Single Unified Card (Aligned & Color-Themed) ── */}
+          <div className="w-full bg-surface-card rounded-2xl border border-surface-border shadow-card hover:shadow-card-hover transition-shadow p-4 sm:p-5 flex flex-col items-center gap-3.5">
+            {/* Unified Card Header: Active Session on Left + Mode Switcher on Right (Aligned Heights) */}
+            <div className="w-full flex items-center justify-between pb-3 border-b border-surface-border">
+              {/* Session Display (Breakfast / Lunch / Dinner) */}
+              <div className="flex items-center gap-1.5 bg-brand-green-light text-brand-green border border-emerald-200/80 px-2.5 py-1 rounded-xl font-bold text-xs tracking-tight shadow-2xs h-8">
                 {currentSession.name === 'Breakfast' ? (
-                  <Coffee size={15} className="text-emerald-600" />
+                  <Coffee size={14} className="text-brand-green" />
                 ) : currentSession.name === 'Lunch' ? (
-                  <Sun size={15} className="text-emerald-600" />
+                  <Sun size={14} className="text-brand-green" />
                 ) : (
-                  <Moon size={15} className="text-emerald-600" />
+                  <Moon size={14} className="text-brand-green" />
                 )}
                 <span>{currentSession.name}</span>
               </div>
 
-              {/* Seamless Mode Switcher Tabs */}
-              <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/70 text-[11px] font-bold">
+              {/* Mode Switcher Tabs */}
+              <div className="flex bg-slate-100 p-0.5 rounded-xl border border-surface-border text-[11px] font-bold h-8 items-center">
                 <button
                   onClick={() => { setMode('qr'); handleReset(); }}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                    mode === 'qr' ? 'bg-white text-slate-900 shadow-2xs font-extrabold' : 'text-slate-500 hover:text-slate-800'
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer h-full ${
+                    mode === 'qr' ? 'bg-white text-slate-primary shadow-2xs font-extrabold' : 'text-slate-secondary hover:text-slate-primary'
                   }`}
                 >
-                  <QrCode size={12} className={mode === 'qr' ? 'text-brand-green' : 'text-slate-400'} />
+                  <QrCode size={12} className={mode === 'qr' ? 'text-brand-green' : 'text-slate-muted'} />
                   <span>QR Scan</span>
                 </button>
                 <button
                   onClick={() => { setMode('manual'); handleReset(); }}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                    mode === 'manual' ? 'bg-white text-slate-900 shadow-2xs font-extrabold' : 'text-slate-500 hover:text-slate-800'
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer h-full ${
+                    mode === 'manual' ? 'bg-white text-slate-primary shadow-2xs font-extrabold' : 'text-slate-secondary hover:text-slate-primary'
                   }`}
                 >
-                  <Keyboard size={12} className={mode === 'manual' ? 'text-brand-green' : 'text-slate-400'} />
+                  <Keyboard size={12} className={mode === 'manual' ? 'text-brand-green' : 'text-slate-muted'} />
                   <span>Manual</span>
                 </button>
               </div>
@@ -659,7 +665,7 @@ export default function EmployeeEntryPanel() {
                 /* Manual Entry Form */
                 <form onSubmit={handleManualSubmit} className="w-full space-y-3 pt-1">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    <label className="block text-[11px] font-bold text-slate-primary mb-1">
                       Employee ID
                     </label>
                     <div className="relative">
@@ -669,14 +675,14 @@ export default function EmployeeEntryPanel() {
                         value={idInput}
                         onChange={(e) => setIdInput(e.target.value.toUpperCase())}
                         placeholder="e.g. AHP-1001"
-                        className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-surface-border rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green"
+                        className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-surface-border rounded-xl text-xs font-mono font-bold text-slate-primary focus:outline-none focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green transition-colors"
                       />
-                      <IdCard size={14} className="absolute left-2.5 top-2.5 text-slate-400" />
+                      <IdCard size={14} className="absolute left-2.5 top-2.5 text-slate-muted" />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    <label className="block text-[11px] font-bold text-slate-primary mb-1">
                       Full Name
                     </label>
                     <div className="relative">
@@ -685,9 +691,9 @@ export default function EmployeeEntryPanel() {
                         value={nameInput}
                         onChange={(e) => setNameInput(e.target.value)}
                         placeholder="e.g. Tariq Al-Balushi"
-                        className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-surface-border rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green"
+                        className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-surface-border rounded-xl text-xs font-semibold text-slate-primary focus:outline-none focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green transition-colors"
                       />
-                      <User size={14} className="absolute left-2.5 top-2.5 text-slate-400" />
+                      <User size={14} className="absolute left-2.5 top-2.5 text-slate-muted" />
                     </div>
                   </div>
 
@@ -704,6 +710,32 @@ export default function EmployeeEntryPanel() {
           </div>
         </div>
       </main>
+
+      {/* Subtle organic corporate wave backdrop matching MainLayout */}
+      <div className="fixed bottom-0 right-0 w-[500px] h-[250px] pointer-events-none z-0 opacity-40 overflow-hidden">
+        <svg viewBox="0 0 600 300" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+          <path
+            d="M0 260 C 150 210, 300 290, 450 230 C 520 200, 560 170, 600 150 L 600 300 L 0 300 Z"
+            fill="url(#wave-gradient-1)"
+          />
+          <path
+            d="M50 280 C 200 230, 350 270, 500 210 C 550 190, 580 180, 600 170 L 600 300 L 50 300 Z"
+            fill="url(#wave-gradient-2)"
+          />
+          <defs>
+            <linearGradient id="wave-gradient-1" x1="0" y1="150" x2="600" y2="300" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#1684AA" stopOpacity="0.25" />
+              <stop offset="1" stopColor="#009B4D" stopOpacity="0.1" />
+            </linearGradient>
+            <linearGradient id="wave-gradient-2" x1="50" y1="170" x2="600" y2="300" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#009B4D" stopOpacity="0.2" />
+              <stop offset="1" stopColor="#1684AA" stopOpacity="0.15" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      <Toast />
     </div>
   );
 }

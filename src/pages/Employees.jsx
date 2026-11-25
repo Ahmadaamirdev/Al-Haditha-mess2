@@ -23,7 +23,7 @@ import {
   QrCode
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { sortMealEntriesDescending } from '../utils/harmonizeEngine';
+import { sortMealEntriesDescending, formatTimeWithoutSeconds } from '../utils/harmonizeEngine';
 import Modal from '../components/common/Modal';
 import EmployeeBadgeModal from '../components/common/EmployeeBadgeModal';
 import { getEmployeesAllocationMap, calculateMonthCalendar } from '../utils/allocationEngine';
@@ -798,7 +798,7 @@ export default function Employees() {
                         <div className="flex items-center space-x-2">
                           <CheckCircle2 className="w-4 h-4 text-brand-green" />
                           <span className="font-semibold text-slate-primary">{entry.mealType}</span>
-                          <span className="text-slate-400 text-[11px]">• {entry.date} at {entry.timestamp}</span>
+                          <span className="text-slate-400 text-[11px]">• {entry.date} at {formatTimeWithoutSeconds(entry.timestamp)}</span>
                         </div>
                         <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                           -1 Allocation

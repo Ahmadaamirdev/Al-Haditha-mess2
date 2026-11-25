@@ -16,7 +16,7 @@ import {
   KeyRound
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { sortMealEntriesDescending } from '../../utils/harmonizeEngine';
+import { sortMealEntriesDescending, formatTimeWithoutSeconds } from '../../utils/harmonizeEngine';
 import { CONTRACT_EMPLOYEE_IDS } from '../../data/employeesData';
 
 export default function LiveAttendanceOverview() {
@@ -292,7 +292,7 @@ export default function LiveAttendanceOverview() {
                   <tr key={entry.id} className="hover:bg-slate-50/60 transition-colors">
                     <td className="px-4 py-2.5 font-mono text-slate-600 whitespace-nowrap">
                       <span className="font-semibold">{entry.date || todayIso}</span>{' '}
-                      <span className="text-slate-400">{entry.timestamp}</span>
+                      <span className="text-slate-400">{formatTimeWithoutSeconds(entry.timestamp)}</span>
                     </td>
                     <td className="px-4 py-2.5 font-bold font-mono text-slate-primary">
                       {entry.employeeId}

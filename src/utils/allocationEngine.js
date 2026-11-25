@@ -41,7 +41,6 @@ export function getOmanTime(date = new Date()) {
       timeZone: 'Asia/Muscat',
       hour: 'numeric',
       minute: '2-digit',
-      second: '2-digit',
       hour12: true,
     }).format(date);
 
@@ -68,7 +67,7 @@ export function getOmanTime(date = new Date()) {
       monthIndex: oman.getMonth(),
       day: oman.getDate(),
       totalMinutes: hour * 60 + minute,
-      formattedTime12: oman.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      formattedTime12: oman.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }),
     };
   }
 }
