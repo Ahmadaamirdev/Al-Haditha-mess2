@@ -68,3 +68,7 @@ npm run db:migrate
 # Build frontend for production
 npm run build
 ```
+
+
+---
+*Production Deployment: Static QR Code & Timestamp Formatter Sync.*
